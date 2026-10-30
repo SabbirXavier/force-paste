@@ -1,4 +1,5 @@
 // Service Worker for ForcePaste & Shield
+// Cross-browser compatibility for Chrome, Firefox, Brave, Edge, Opera, Vivaldi, Arc
 
 chrome.runtime.onInstalled.addListener(async () => {
   const currentSettings = await chrome.storage.local.get([
@@ -31,16 +32,20 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
 });
 
-// Ensure offscreen document exists for unrestricted clipboard access
+// Ensure offscreen document exists for Chromium browsers
 async function ensureOffscreenDocument() {
+  if (typeof chrome === "undefined" || !chrome.offscreen) return;
+
   if (chrome.offscreen?.hasDocument) {
     const hasDoc = await chrome.offscreen.hasDocument();
     if (hasDoc) return;
-  } else if (chrome.runtime.getContexts) {
-    const contexts = await chrome.runtime.getContexts({
-      contextTypes: ["OFFSCREEN_DOCUMENT"]
-    });
-    if (contexts && contexts.length > 0) return;
+  } else if (chrome.runtime?.getContexts) {
+    try {
+      const contexts = await chrome.runtime.getContexts({
+        contextTypes: ["OFFSCREEN_DOCUMENT"]
+      });
+      if (contexts && contexts.length > 0) return;
+    } catch (e) {}
   }
 
   try {
@@ -49,9 +54,7 @@ async function ensureOffscreenDocument() {
       reasons: [chrome.offscreen.Reason.CLIPBOARD],
       justification: "Read clipboard text directly for automated typing"
     });
-  } catch (err) {
-    // If it already exists or error, continue
-  }
+  } catch (err) {}
 }
 
 // Handle clipboard reading request from content script
@@ -59,11 +62,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "READ_CLIPBOARD_BG") {
     (async () => {
       try {
-        await ensureOffscreenDocument();
-        const resp = await chrome.runtime.sendMessage({
-          type: "OFFSCREEN_READ_CLIPBOARD"
-        });
-        sendResponse({ text: resp?.text || "" });
+        if (typeof chrome !== "undefined" && chrome.offscreen && chrome.offscreen.createDocument) {
+          await ensureOffscreenDocument();
+          const resp = await chrome.runtime.sendMessage({
+            type: "OFFSCREEN_READ_CLIPBOARD"
+          });
+          sendResponse({ text: resp?.text || "" });
+        } else {
+          // Firefox / non-offscreen browsers: content script reads navigator.clipboard directly
+          sendResponse({ text: "" });
+        }
       } catch (err) {
         sendResponse({ text: "" });
       }
@@ -73,15 +81,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 
 // Handle Alt+V keyboard shortcut command
-chrome.commands.onCommand.addListener(async (command) => {
-  if (command === "human_paste") {
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab?.id) {
-        await chrome.tabs.sendMessage(tab.id, { type: "TRIGGER_PASTE" });
+if (chrome.commands?.onCommand) {
+  chrome.commands.onCommand.addListener(async (command) => {
+    if (command === "human_paste") {
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.id) {
+          await chrome.tabs.sendMessage(tab.id, { type: "TRIGGER_PASTE" });
+        }
+      } catch (err) {
+        console.warn("Could not send command to active tab:", err);
       }
-    } catch (err) {
-      console.warn("Could not send command to active tab:", err);
     }
-  }
-});
+  });
+}

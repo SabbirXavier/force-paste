@@ -2,16 +2,24 @@
 
 # ⚡ ForcePaste & Shield
 
-**The Ultimate Anti-Block Paste Helper & Restriction Shield for Chromium Browsers**
+**The Universal Anti-Block Paste Helper & Restriction Shield for All Browsers**
 
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-4f46e5.svg?style=flat-square)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![Version](https://img.shields.io/badge/Version-1.3.0-10b981.svg?style=flat-square)](https://github.com)
+[![Version](https://img.shields.io/badge/Version-1.3.0-10b981.svg?style=flat-square)](https://github.com/SabbirXavier/force-paste/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
-[![Browsers](https://img.shields.io/badge/Compatible%20with-Chrome%20%7C%20Edge%20%7C%20Brave%20%7C%20Opera-orange?style=flat-square)](https://github.com)
+[![Universal Browser Support](https://img.shields.io/badge/Universal-Chrome%20%7C%20Firefox%20%7C%20Brave%20%7C%20Edge%20%7C%20Opera-purple.svg?style=flat-square)](https://github.com/SabbirXavier/force-paste)
 
 *A 100% free, open-source browser extension that forces paste on any website by simulating natural human keystrokes, and safely neutralizes blocked right-clicks, F12, and shortcuts with zero server trace.*
 
-[Quick Install](#-quick-install-free--no-store-fees) • [Features](#-features) • [How to Use](#-how-to-use) • [Under the Hood](#-how-it-works-zero-server-trace) • [Privacy Guarantee](#-privacy--security)
+<br/>
+
+[![Download for Chrome / Chromium](https://img.shields.io/badge/Chrome%20%2F%20Brave%20%2F%20Edge-Direct%20Download-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.3.0.zip)
+&nbsp;&nbsp;
+[![Download for Firefox](https://img.shields.io/badge/Firefox-Direct%20Download-FF7139?style=for-the-badge&logo=firefox&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.3.0.zip)
+
+<br/>
+
+[Quick Install Guides](#-browser-installation-guides) • [Features](#-features) • [How to Use](#-how-to-use) • [Under the Hood](#-how-it-works-zero-server-trace) • [Privacy Guarantee](#-privacy--security)
 
 </div>
 
@@ -28,6 +36,42 @@ Many test portals, exam platforms, banking sites, and educational services inten
 **ForcePaste bypasses all of them cleanly without triggering anti-cheat or server alerts:**
 1. **Force-Paste via Simulated Keystrokes:** Rather than fighting `paste` events, it types your clipboard text character-by-character using genuine `keydown`, `beforeinput`, and `input` events at your chosen Words-Per-Minute (WPM) speed.
 2. **Safe Local Neutralization:** Intercepts blocked keys and right-clicks in the browser's **Capture Phase**, rendering the website's blocking scripts completely blind and inert.
+
+---
+
+## 🌐 Browser Installation Guides
+
+ForcePaste works natively across **all major browsers**: Google Chrome, Mozilla Firefox, Brave Browser, Microsoft Edge, Opera, Vivaldi, and Arc.
+
+### 📥 1. Download Package
+* Download the universal package: [**`forcepaste-v1.3.0.zip`**](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.3.0.zip)
+* Extract (unzip) the file into a folder on your computer.
+
+---
+
+### 🌐 For Chrome, Brave, Edge, Opera, Vivaldi, Arc (Chromium)
+
+1. Open your browser's extension manager:
+   * **Google Chrome:** `chrome://extensions`
+   * **Brave Browser:** `brave://extensions`
+   * **Microsoft Edge:** `edge://extensions`
+   * **Opera:** `opera://extensions`
+2. Turn ON **Developer mode** (toggle in the top-right corner).
+3. Click the **Load unpacked** button (top-left).
+4. Select the unzipped `forcepaste` folder (the folder containing `manifest.json`).
+5. ✅ ForcePaste is now active in your browser toolbar!
+
+---
+
+### 🦊 For Mozilla Firefox
+
+1. Open Firefox and navigate to:
+   ```text
+   about:debugging#/runtime/this-firefox
+   ```
+2. Click **Load Temporary Add-on...**
+3. Select either `manifest.json` from the extracted folder or the downloaded `forcepaste-v1.3.0.zip` file directly.
+4. ✅ ForcePaste is now loaded and fully functional in Firefox!
 
 ---
 
@@ -52,27 +96,7 @@ Many test portals, exam platforms, banking sites, and educational services inten
 * Bypasses the website's `isCtrl == true` trap because it never touches the <kbd>Ctrl</kbd> key!
 
 ### 📋 4. Privileged Offscreen Clipboard Reader
-* Uses a dedicated Manifest V3 background offscreen document to fetch your clipboard text directly with **zero permission popups**.
-
----
-
-## 🚀 Quick Install (Free — No Store Fees)
-
-No Chrome Web Store account or payment needed. Install directly in your browser in under 30 seconds:
-
-### Step 1: Download the Extension
-* Download the ready-to-load package: [**`forcepaste-v1.3.0.zip`**](forcepaste-v1.3.0.zip)
-* Extract (unzip) the file into a folder on your computer.
-
-### Step 2: Load into Your Browser
-1. Open the Extensions management page:
-   * **Google Chrome:** `chrome://extensions`
-   * **Microsoft Edge:** `edge://extensions`
-   * **Brave Browser:** `brave://extensions`
-   * **Opera:** `opera://extensions`
-2. Turn ON **Developer mode** (toggle in the top-right corner).
-3. Click the **Load unpacked** button (top-left).
-4. Select the unzipped folder containing `manifest.json`.
+* Uses a dedicated background offscreen document (with standard clipboard fallback for Firefox) to read your clipboard text directly with **zero permission popups**.
 
 ---
 
