@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HumanTyper & Shield</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      width: 360px;
+      background: #f8fafc;
+      color: #1e293b;
+    }
+
+    /* Top navigation / branding */
+    .top-bar {
+      padding: 12px 16px;
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #4f46e5;
+    }
+
+    .brand svg {
+      width: 18px;
+      height: 18px;
+      fill: #4f46e5;
+    }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 9px 0;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn.active {
+      color: #4f46e5;
+      border-bottom-color: #4f46e5;
+      background: #f8fafc;
+    }
+
+    .tab-content {
+      padding: 14px 16px;
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Banner / Quick Actions */
+    .action-banner {
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+    }
+
+    .action-banner h4 {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .action-banner p {
+      font-size: 11px;
+      opacity: 0.9;
+      line-height: 1.35;
+      margin-bottom: 10px;
+    }
+
+    .banner-btn {
+      background: #ffffff;
+      color: #4f46e5;
+      border: none;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.1s ease;
+    }
+
+    .banner-btn:hover {
+      background: #f1f5f9;
+    }
+
+    /* Restriction List */
+    .restriction-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      transition: border-color 0.15s ease;
+    }
+
+    .restriction-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .restriction-title {
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .indicator-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #cbd5e1;
+    }
+
+    .indicator-dot.blocked {
+      background: #ef4444;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+    }
+
+    .indicator-dot.unblocked {
+      background: #10b981;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+    }
+
+    .indicator-dot.clear {
+      background: #94a3b8;
+    }
+
+    .restriction-desc {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 4px;
+      line-height: 1.35;
+    }
+
+    /* Small switch toggle */
+    .switch-sm {
+      position: relative;
+      display: inline-block;
+      width: 32px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .switch-sm input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider-sm {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #cbd5e1;
+      transition: .15s;
+      border-radius: 18px;
+    }
+
+    .slider-sm:before {
+      position: absolute;
+      content: "";
+      height: 12px;
+      width: 12px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .15s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider-sm {
+      background-color: #10b981;
+    }
+
+    input:checked + .slider-sm:before {
+      transform: translateX(14px);
+    }
+
+    /* Safety footer note */
+    .safety-box {
+      margin-top: 10px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: flex;
+      gap: 7px;
+      font-size: 10.5px;
+      color: #475569;
+      line-height: 1.4;
+    }
+
+    .safety-box svg {
+      width: 14px;
+      height: 14px;
+      fill: #059669;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Typer Tab Styles */
+    .section-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .label-row {
+      font-size: 12px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    select {
+      width: 100%;
+      padding: 6px 10px;
+      font-size: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      outline: none;
+      background: #ffffff;
+      color: #1e293b;
+    }
+
+    select:focus {
+      border-color: #4f46e5;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #475569;
+    }
+
+    .shortcut-badge {
+      display: inline-block;
+      background: #eef2ff;
+      color: #4338ca;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #c7d2fe;
+    }
+
+    /* Custom WPM Box */
+    .custom-wpm-box {
+      margin-top: 10px;
+      padding: 10px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .wpm-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .wpm-title {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .wpm-stats {
+      font-size: 11px;
+      font-weight: 700;
+      color: #4f46e5;
+      background: #e0e7ff;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .wpm-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .wpm-controls input[type="range"] {
+      flex: 1;
+      accent-color: #4f46e5;
+      cursor: pointer;
+    }
+
+    .wpm-controls input[type="number"] {
+      width: 60px;
+      padding: 4px 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #1e293b;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      text-align: center;
+      outline: none;
+    }
+
+    .wpm-controls input[type="number"]:focus {
+      border-color: #4f46e5;
+    }
+
+    .playground-input {
+      width: 100%;
+      padding: 7px 10px;
+      font-size: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      outline: none;
+      margin-top: 4px;
+    }
+
+    .playground-input:focus {
+      border-color: #4f46e5;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+      HumanTyper & Shield
+    </div>
+    <div class="status-badge" id="protection-status">
+      <span class="indicator-dot clear" id="overall-dot"></span>
+      <span id="overall-text">Active</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="tab-shield">🛡️ Page Restrictions</button>
+    <button class="tab-btn" data-tab="tab-typer">⌨️ Human Typer</button>
+  </div>
+
+  <!-- TAB 1: RESTRICTIONS & LOCAL UNBLOCKER -->
+  <div class="tab-content active" id="tab-shield">
+    <div class="action-banner">
+      <h4>
+        <svg style="width:14px;height:14px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+        Safe Local Neutralizer
+      </h4>
+      <p id="summary-text">Scanning current page for blocked shortcuts, right-clicks, and clipboard blockers...</p>
+      <button class="banner-btn" id="btn-unblock-all">
+        <svg style="width:12px;height:12px;fill:currentColor" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+        Unblock All Safely
+      </button>
+    </div>
+
+    <!-- Restriction item: F12 -->
+    <div class="restriction-card" id="card-f12">
+      <div class="restriction-header">
+        <div class="restriction-title">
+          <span class="indicator-dot clear" id="dot-f12"></span>
+          F12 & DevTools Shortcuts
+        </div>
+        <label class="switch-sm">
+          <input type="checkbox" id="toggle-f12">
+          <span class="slider-sm"></span>
+        </label>
+      </div>
+      <div class="restriction-desc" id="desc-f12">Checking for F12 (123) and Ctrl+Shift+I blockers...</div>
+    </div>
+
+    <!-- Restriction item: Right click -->
+    <div class="restriction-card" id="card-contextmenu">
+      <div class="restriction-header">
+        <div class="restriction-title">
+          <span class="indicator-dot clear" id="dot-contextmenu"></span>
+          Right-Click Context Menu
+        </div>
+        <label class="switch-sm">
+          <input type="checkbox" id="toggle-contextmenu">
+          <span class="slider-sm"></span>
+        </label>
+      </div>
+      <div class="restriction-desc" id="desc-contextmenu">Checking for oncontextmenu cancel handlers...</div>
+    </div>
+
+    <!-- Restriction item: Copy/Paste -->
+    <div class="restriction-card" id="card-copypaste">
+      <div class="restriction-header">
+        <div class="restriction-title">
+          <span class="indicator-dot clear" id="dot-copypaste"></span>
+          Copy / Cut / Paste Keystrokes
+        </div>
+        <label class="switch-sm">
+          <input type="checkbox" id="toggle-copypaste">
+          <span class="slider-sm"></span>
+        </label>
+      </div>
+      <div class="restriction-desc" id="desc-copypaste">Checking for Ctrl+C, Ctrl+V, oncopy, or onpaste blocks...</div>
+    </div>
+
+    <!-- Restriction item: Selection -->
+    <div class="restriction-card" id="card-selection">
+      <div class="restriction-header">
+        <div class="restriction-title">
+          <span class="indicator-dot clear" id="dot-selection"></span>
+          Text Selection & Highlighting
+        </div>
+        <label class="switch-sm">
+          <input type="checkbox" id="toggle-selection">
+          <span class="slider-sm"></span>
+        </label>
+      </div>
+      <div class="restriction-desc" id="desc-selection">Checking for user-select: none and onselectstart...</div>
+    </div>
+
+    <!-- Restriction item: Drag -->
+    <div class="restriction-card" id="card-drag">
+      <div class="restriction-header">
+        <div class="restriction-title">
+          <span class="indicator-dot clear" id="dot-drag"></span>
+          Drag & Drop Operations
+        </div>
+        <label class="switch-sm">
+          <input type="checkbox" id="toggle-drag">
+          <span class="slider-sm"></span>
+        </label>
+      </div>
+      <div class="restriction-desc" id="desc-drag">Checking for ondragstart cancel handlers...</div>
+    </div>
+
+    <div class="safety-box">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      <div>
+        <b>Zero Server Trace:</b> Neutralization uses Capture-Phase event interception before page scripts run. No cheat detection or telemetry is sent to provider servers.
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: HUMAN TYPER SETTINGS -->
+  <div class="tab-content" id="tab-typer">
+    <div class="section-card">
+      <div class="label-row">
+        <span>Enable Auto-Paste Helper</span>
+        <label class="switch-sm">
+          <input type="checkbox" id="toggle-typer-enabled" checked>
+          <span class="slider-sm"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <span>Show floating "Paste" badge</span>
+        <input type="checkbox" id="toggle-floating-icon" checked>
+      </div>
+      <div class="toggle-row">
+        <span>Natural human typing jitter</span>
+        <input type="checkbox" id="toggle-jitter" checked>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="label-row">Typing Speed Mode</div>
+      <select id="select-speed">
+        <option value="custom">Custom Words Per Minute (Manual WPM)</option>
+        <option value="human">Human Average (~50 WPM, natural pauses)</option>
+        <option value="fast">Fast (~150 WPM, quick typing)</option>
+        <option value="instant">Instant (0ms, direct synthetic input)</option>
+      </select>
+
+      <!-- Manual WPM Speed Controls -->
+      <div class="custom-wpm-box" id="custom-wpm-box">
+        <div class="wpm-header">
+          <span class="wpm-title">Manual Typing Speed</span>
+          <span class="wpm-stats" id="wpm-stats">60 WPM (~200ms/char)</span>
+        </div>
+        <div class="wpm-controls">
+          <input type="range" id="range-wpm" min="15" max="300" step="5" value="60">
+          <input type="number" id="num-wpm" min="10" max="600" step="1" value="60">
+          <span style="font-size:11px;font-weight:600;color:#64748b;">WPM</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="label-row">
+        <span>Keyboard Shortcut</span>
+        <span class="shortcut-badge">Alt + V</span>
+      </div>
+      <p style="font-size:11px;color:#64748b;margin-top:4px;">
+        Press <b>Alt + V</b> inside any field to auto-type without triggering website Ctrl blocks.
+      </p>
+    </div>
+
+    <div class="section-card">
+      <div class="label-row">Test Playground</div>
+      <input type="text" class="playground-input" id="test-field" placeholder="Copy text, click here & press Alt+V to test">
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

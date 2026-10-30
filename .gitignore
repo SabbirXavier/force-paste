@@ -1,0 +1,16 @@
+# Operating System
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Windows Shortcuts & Temp
+*.lnk
+*.tmp
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
