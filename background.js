@@ -1,4 +1,4 @@
-// Service Worker for HumanTyper & Shield
+// Service Worker for ForcePaste & Shield
 
 chrome.runtime.onInstalled.addListener(async () => {
   const currentSettings = await chrome.storage.local.get([

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "HumanTyper: Smart Paste & Key Shield",
+  "name": "ForcePaste: Smart Paste & Key Shield",
   "version": "1.3.0",
-  "description": "Simulates human typing to paste into restricted fields and safely restores F12, right-click, and shortcuts locally.",
+  "description": "Force paste into blocked fields with human typing simulation. Safely restores F12, right-click, and shortcuts locally.",
   "permissions": [
     "storage",
     "activeTab",
@@ -46,7 +46,7 @@
         "default": "Alt+V",
         "mac": "Alt+V"
       },
-      "description": "Trigger Human-like Typing from Clipboard into Active Field"
+      "description": "Force paste clipboard into active field"
     }
   }
 }

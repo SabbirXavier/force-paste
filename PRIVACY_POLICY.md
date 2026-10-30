@@ -1,13 +1,13 @@
-# Privacy Policy for HumanTyper
+# Privacy Policy for ForcePaste
 
 **Last Updated:** October 30, 2026
 
-This Privacy Policy applies to the **HumanTyper: Smart Paste & Key Shield** browser extension (referred to as "the Extension", "we", "our", or "us").
+This Privacy Policy applies to the **ForcePaste: Smart Paste & Key Shield** browser extension (referred to as "the Extension", "we", "our", or "us").
 
 ---
 
 ### 1. Overview
-HumanTyper is built with privacy by design. The Extension operates entirely within your local browser environment. We do not collect, track, store, transmit, or monetize any of your personal data, clipboard contents, browsing activity, or keystrokes.
+ForcePaste is built with privacy by design. The Extension operates entirely within your local browser environment. We do not collect, track, store, transmit, or monetize any of your personal data, clipboard contents, browsing activity, or keystrokes.
 
 ---
 

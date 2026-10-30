@@ -6,10 +6,10 @@ def package():
     with open("manifest.json", "r", encoding="utf-8") as f:
         manifest = json.load(f)
 
-    version = manifest.get("version", "1.0.0")
-    zip_filename = f"humantyper-v{version}-store-ready.zip"
+    version = manifest.get("version", "1.3.0")
+    zip_filename = f"forcepaste-v{version}.zip"
 
-    # Exact files needed for production Chrome Web Store
+    # Exact files needed for production package
     include_files = [
         "manifest.json",
         "background.js",
@@ -35,7 +35,7 @@ def package():
 
     size_kb = os.path.getsize(zip_filename) / 1024
     print(f"\nDone! Package successfully created: {zip_filename} ({size_kb:.1f} KB)")
-    print("Ready to upload directly to Chrome Web Store Developer Dashboard!")
+    print("Ready for direct distribution on GitHub!")
 
 if __name__ == "__main__":
     package()

@@ -1,67 +1,67 @@
 <div align="center">
 
-# 🛡️ HumanTyper & Shield
+# ⚡ ForcePaste & Shield
 
-**Smart Auto-Paste & Restriction Inspector for Chromium Browsers**
+**The Ultimate Anti-Block Paste Helper & Restriction Shield for Chromium Browsers**
 
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-4f46e5.svg?style=flat-square)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 [![Version](https://img.shields.io/badge/Version-1.3.0-10b981.svg?style=flat-square)](https://github.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Browsers](https://img.shields.io/badge/Compatible%20with-Chrome%20%7C%20Edge%20%7C%20Brave%20%7C%20Opera-orange?style=flat-square)](https://github.com)
 
-*A 100% free, open-source browser extension that types clipboard text like a natural human to bypass copy/paste blockers, and safely unblocks F12, right-click, and shortcuts with zero server trace.*
+*A 100% free, open-source browser extension that forces paste on any website by simulating natural human keystrokes, and safely neutralizes blocked right-clicks, F12, and shortcuts with zero server trace.*
 
-[Installation](#-installation-free--no-store-fee) • [Key Features](#-key-features) • [How to Use](#-how-to-use) • [Under the Hood](#-how-it-works-zero-server-trace) • [Privacy Guarantee](#-privacy--security)
+[Quick Install](#-quick-install-free--no-store-fees) • [Features](#-features) • [How to Use](#-how-to-use) • [Under the Hood](#-how-it-works-zero-server-trace) • [Privacy Guarantee](#-privacy--security)
 
 </div>
 
 ---
 
-## 💡 Why HumanTyper?
+## 💥 What is ForcePaste?
 
-Many educational portals, examination platforms, and corporate forms use aggressive scripts to:
-* Block <kbd>Ctrl</kbd> + <kbd>V</kbd> and paste events.
-* Block developer tools (<kbd>F12</kbd>, <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>I</kbd>).
-* Disable right-click context menus (`oncontextmenu = return false`).
-* Disable text selection and copying (`user-select: none`).
+Many test portals, exam platforms, banking sites, and educational services intentionally block users from pasting, inspecting elements, or using common shortcuts:
+* ❌ Blocked <kbd>Ctrl</kbd> + <kbd>V</kbd> and cancelled `paste` events.
+* ❌ Blocked Developer Tools (<kbd>F12</kbd>, <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>I</kbd>).
+* ❌ Disabled right-click context menus (`oncontextmenu = return false`).
+* ❌ Disabled text selection and copying (`user-select: none`).
 
-**HumanTyper solves this cleanly without fighting the website's code:**
-1. **Types character-by-character** generating genuine `keydown`, `beforeinput`, and `input` events at your chosen Words-Per-Minute (WPM) speed.
-2. **Neutralizes restrictions in the browser's Capture Phase** so the website's anti-cheat scripts are never even triggered.
+**ForcePaste bypasses all of them cleanly without triggering anti-cheat or server alerts:**
+1. **Force-Paste via Simulated Keystrokes:** Rather than fighting `paste` events, it types your clipboard text character-by-character using genuine `keydown`, `beforeinput`, and `input` events at your chosen Words-Per-Minute (WPM) speed.
+2. **Safe Local Neutralization:** Intercepts blocked keys and right-clicks in the browser's **Capture Phase**, rendering the website's blocking scripts completely blind and inert.
 
 ---
 
-## ⭐ Key Features
+## ⭐ Features
 
-### ⌨️ 1. Smart Human Auto-Typer with Custom WPM
-* **Manual WPM Control:** Set your exact typing speed from **10 to 600 Words Per Minute** with a live slider and number box.
-* **Organic Timing & Jitter:** Applies natural $\pm 25\%$ variation around your target WPM, with human-like pauses after spaces and punctuation marks.
-* **Framework Support:** Fully compatible with React, Vue, Angular, plain inputs, textareas, and rich `contenteditable` elements.
+### ⚡ 1. Force-Paste with Custom WPM Control
+* **Manual Speed Selector:** Set your exact speed from **10 to 600 Words Per Minute** using the interactive slider or direct numeric input.
+* **Proportional Human Jitter:** Applies a natural $\pm 25\%$ variation around your target WPM, complete with realistic micro-pauses after spaces and punctuation marks (`.`, `,`, `!`, `?`).
+* **Universal Framework Support:** Works seamlessly with React, Vue, Angular, plain inputs, textareas, and rich `contenteditable` elements.
 
-### 🛡️ 2. Restriction Inspector & Safe Local Shield
-* **Automatic Detection:** Live scanner detects what the page is blocking:
+### 🛡️ 2. Restriction Inspector & Local Shield
+* **Automatic Live Detection:** Automatically scans the active page and flags active blockers:
   * 🚫 <kbd>F12</kbd> & DevTools Key Combinations
   * 🚫 Right-Click Context Menu
-  * 🚫 Copy / Cut / Paste Keystrokes
+  * 🚫 Copy / Cut / Paste Keystroke Blocks
   * 🚫 Text Highlighting & Selection (`user-select: none`)
-  * 🚫 Drag & Drop Operations
-* **Safe Local Unblocking:** Neutralize each blocker individually or click **"Unblock All Safely"**.
+  * 🚫 Drag & Drop Blockers
+* **One-Click Unblock:** Neutralize each blocker individually or click **"Unblock All Safely"**.
 
-### ⚡ 3. The `Alt + V` Shortcut
-* Press <kbd>Alt</kbd> + <kbd>V</kbd> inside any field to trigger human typing instantly.
-* Bypasses the website's `isCtrl == true` keystroke blocker because it never touches the <kbd>Ctrl</kbd> key.
+### ⌨️ 3. The `Alt + V` Shortcut
+* Press <kbd>Alt</kbd> + <kbd>V</kbd> inside any input or text field to instantly trigger typing.
+* Bypasses the website's `isCtrl == true` trap because it never touches the <kbd>Ctrl</kbd> key!
 
 ### 📋 4. Privileged Offscreen Clipboard Reader
-* Uses a dedicated Manifest V3 background offscreen document to read your clipboard text directly with **zero permission prompts**.
+* Uses a dedicated Manifest V3 background offscreen document to fetch your clipboard text directly with **zero permission popups**.
 
 ---
 
-## 🚀 Installation (Free — No Store Fee)
+## 🚀 Quick Install (Free — No Store Fees)
 
-You do **not** need to pay $5 to the Chrome Web Store. You can install it directly in your browser in under 30 seconds:
+No Chrome Web Store account or payment needed. Install directly in your browser in under 30 seconds:
 
 ### Step 1: Download the Extension
-* Download the ready-to-use package: [**`humantyper-v1.3.0-store-ready.zip`**](humantyper-v1.3.0-store-ready.zip)
+* Download the ready-to-load package: [**`forcepaste-v1.3.0.zip`**](forcepaste-v1.3.0.zip)
 * Extract (unzip) the file into a folder on your computer.
 
 ### Step 2: Load into Your Browser
@@ -74,38 +74,36 @@ You do **not** need to pay $5 to the Chrome Web Store. You can install it direct
 3. Click the **Load unpacked** button (top-left).
 4. Select the unzipped folder containing `manifest.json`.
 
-That's it! The **HumanTyper & Shield** icon will appear in your browser toolbar.
-
 ---
 
 ## 🎯 How to Use
 
-### Typing Text into Restricted Fields:
+### Force-Pasting Text into Blocked Fields:
 1. Copy any text (<kbd>Ctrl</kbd> + <kbd>C</kbd>).
-2. Click inside any input or text field on the website.
+2. Click inside any input or text field on the restricted webpage.
 3. Either:
-   * Click the floating **Paste** badge near the input field, OR
+   * Click the floating **ForcePaste** badge near the input field, OR
    * Press <kbd>Alt</kbd> + <kbd>V</kbd> on your keyboard.
-4. Watch HumanTyper type your text smoothly at your chosen WPM!
+4. Watch ForcePaste type your text smoothly into the field at your configured WPM!
 
-### Unblocking Restricted Shortcuts & Right-Click:
-1. Click the **HumanTyper** icon in your browser toolbar.
-2. Under the **🛡️ Page Restrictions** tab, review any red indicators showing what the site blocked.
+### Unblocking F12, Right-Click, and Shortcuts:
+1. Click the **ForcePaste** icon in your browser toolbar.
+2. Under the **🛡️ Page Restrictions** tab, review the detected blockers.
 3. Click **"Unblock All Safely"** or toggle specific features.
 
 ---
 
 ## 🔬 How It Works (Zero Server Trace)
 
-Most website anti-copy scripts listen at the `document` level in the **Bubble phase**:
+Most website anti-copy scripts listen on `document` in the **Bubble phase**:
 ```
 User Event ──> [Capture Phase: window ──> document] ──> [Target] ──> [Bubble Phase: document.onkeydown]
                      ▲
-                     │ HumanTyper intercepts HERE (e.stopImmediatePropagation())
+                     │ ForcePaste intercepts HERE (e.stopImmediatePropagation())
                      │ The website's script NEVER receives the event!
 ```
 
-Because HumanTyper catches the event in the **Capture phase** (`capture: true`), the website's blocking handler never receives the event at all:
+Because ForcePaste catches the event in the **Capture phase** (`capture: true`), the website's blocking handler never receives the event at all:
 * No console logs (`"Right click disabled"`)
 * No cheating telemetry sent to the server (`fetch('/report')`)
 * The browser natively opens DevTools or shows the context menu cleanly.
@@ -117,17 +115,6 @@ Because HumanTyper catches the event in the **Capture phase** (`capture: true`),
 * **100% Offline:** Zero external server connections, zero APIs, zero third-party telemetry.
 * **No Storage of Copied Data:** Clipboard content is read strictly in memory when you click Paste or press <kbd>Alt</kbd> + <kbd>V</kbd>, and is immediately discarded after typing.
 * **No Account Required:** Free and open source under the MIT License.
-
----
-
-## 🤝 Contributing
-
-Contributions, bug reports, and feature suggestions are welcome!
-1. Fork this repository.
-2. Create your feature branch (`git checkout -b feature/amazing-feature`).
-3. Commit your changes (`git commit -m 'Add amazing feature'`).
-4. Push to the branch (`git push origin feature/amazing-feature`).
-5. Open a Pull Request.
 
 ---
 

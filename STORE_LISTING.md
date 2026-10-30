@@ -1,13 +1,13 @@
 # Chrome Web Store & Edge Add-ons Listing Assets
 
-This document contains all the copy, descriptions, permission justifications, and metadata required to publish **HumanTyper** to the **Chrome Web Store** and **Microsoft Edge Add-ons** store.
+This document contains all the copy, descriptions, permission justifications, and metadata for **ForcePaste**.
 
 ---
 
 ## 1. Store Metadata
 
-* **Extension Name:** `HumanTyper: Smart Paste & Key Shield` *(36 / 45 characters)*
-* **Short Description:** `Simulates human typing to paste into restricted fields and safely restores F12, right-click, and shortcuts locally.` *(116 / 132 characters)*
+* **Extension Name:** `ForcePaste: Smart Paste & Key Shield` *(35 / 45 characters)*
+* **Short Description:** `Force paste into blocked fields with human typing simulation. Safely restores F12, right-click, and shortcuts locally.` *(119 / 132 characters)*
 * **Category:** `Productivity` or `Accessibility`
 * **Language:** `English`
 * **Price:** `Free`
