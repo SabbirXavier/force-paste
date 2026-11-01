@@ -5,7 +5,7 @@
 **The Universal Browser Freedom & Productivity Suite for All Major Browsers**
 
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-4f46e5.svg?style=flat-square)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![Version](https://img.shields.io/badge/Version-1.7.2-10b981.svg?style=flat-square)](https://github.com/SabbirXavier/force-paste/releases/latest)
+[![Version](https://img.shields.io/badge/Version-1.7.3-10b981.svg?style=flat-square)](https://github.com/SabbirXavier/force-paste/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Universal Browser Support](https://img.shields.io/badge/Universal-Chrome%20%7C%20Firefox%20%7C%20Brave%20%7C%20Edge%20%7C%20Opera-purple.svg?style=flat-square)](https://github.com/SabbirXavier/force-paste)
 
@@ -13,9 +13,9 @@
 
 <br/>
 
-[![Download for Chrome / Chromium](https://img.shields.io/badge/Chrome%20%2F%20Brave%20%2F%20Edge-Direct%20Download-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.7.2.zip)
+[![Download for Chrome / Chromium](https://img.shields.io/badge/Chrome%20%2F%20Brave%20%2F%20Edge-Direct%20Download-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.7.3.zip)
 &nbsp;&nbsp;
-[![Download for Firefox](https://img.shields.io/badge/Firefox-Direct%20Download-FF7139?style=for-the-badge&logo=firefox&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.7.2.zip)
+[![Download for Firefox](https://img.shields.io/badge/Firefox-Direct%20Download-FF7139?style=for-the-badge&logo=firefox&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.7.3.zip)
 
 <br/>
 
@@ -99,7 +99,7 @@ Bypasses all four modern web protection mechanisms:
 ForcePaste works natively across **Chrome, Firefox, Brave, Edge, Opera, Vivaldi, and Arc**.
 
 ### 📥 1. Download
-* Download the universal package: [**`forcepaste-v1.7.2.zip`**](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.7.2.zip)
+* Download the universal package: [**`forcepaste-v1.7.3.zip`**](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.7.3.zip)
 * Extract (unzip) the file into a folder on your computer.
 
 ---

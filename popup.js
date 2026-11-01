@@ -183,6 +183,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   headerAlwaysActive?.addEventListener("click", () => toggleAlwaysActiveDrawer());
   descAlwaysActive?.addEventListener("click", () => toggleAlwaysActiveDrawer());
 
+  const labelAlwaysActiveCurrent = document.getElementById("label-always-active-current");
+  labelAlwaysActiveCurrent?.addEventListener("click", (e) => e.stopPropagation());
+
   async function getActiveTabsAlwaysActive() {
     const res = await chrome.storage.local.get(["alwaysActiveTabIds"]);
     return Array.isArray(res.alwaysActiveTabIds) ? res.alwaysActiveTabIds : [];
@@ -309,7 +312,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           const safeUrl = (tab.url || "").replace(/"/g, "&quot;");
 
           row.innerHTML = `
-            <img class="tab-item-favicon" src="${faviconSrc}" onerror="this.src='icons/icon-16.png'">
+            <img class="tab-item-favicon" src="${faviconSrc}">
             <div class="tab-item-info">
               <div class="tab-item-title-row">
                 <span class="tab-item-title" title="${safeTitle}">${safeTitle}</span>
@@ -317,11 +320,21 @@ document.addEventListener("DOMContentLoaded", async () => {
               </div>
               <div class="tab-item-url" title="${safeUrl}">${domain}</div>
             </div>
-            <label class="switch-sm" title="Toggle Always Active for this tab" onclick="event.stopPropagation()">
+            <label class="switch-sm tab-item-switch-label" title="Toggle Always Active for this tab">
               <input type="checkbox" class="tab-item-toggle" data-tab-id="${tab.id}" ${isTabActive ? "checked" : ""}>
               <span class="slider-sm"></span>
             </label>
           `;
+
+          // Fallback favicon on error without inline CSP violation
+          const faviconImg = row.querySelector(".tab-item-favicon");
+          faviconImg?.addEventListener("error", () => {
+            faviconImg.src = "icons/icon-16.png";
+          });
+
+          // Stop propagation on switch container click so it doesn't trigger row focus
+          const switchLabel = row.querySelector(".tab-item-switch-label");
+          switchLabel?.addEventListener("click", (e) => e.stopPropagation());
 
           // Click on row (outside switch) brings window and tab to focus
           row.addEventListener("click", async () => {
