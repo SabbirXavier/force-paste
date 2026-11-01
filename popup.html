@@ -515,6 +515,22 @@
       </div>
     </div>
 
+    <!-- Feature 4: Ghost Mode Toggle (Screen Share / Recording Safe) -->
+    <div class="feature-toggle-card">
+      <div class="feature-toggle-header">
+        <div class="feature-toggle-title">
+          <span>👻</span> Ghost Mode (Hide from Screen Capture)
+        </div>
+        <label class="switch-sm">
+          <input type="checkbox" id="toggle-ghost-mode">
+          <span class="slider-sm"></span>
+        </label>
+      </div>
+      <div class="feature-toggle-desc">
+        Completely hides all extension badges, pop-ups, and floating icons from the webpage so screen captures, video recordings, and screenshots capture a 100% clean page. Press <b>Alt + H</b> to toggle on/off.
+      </div>
+    </div>
+
     <div class="action-banner">
       <h4>
         <svg style="width:13px;height:13px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
@@ -584,7 +600,7 @@
         </label>
       </div>
       <div class="toggle-row">
-        <span>Show floating "ForcePaste" badge</span>
+        <span>Show compact floating dock ([📋] Paste, [📝] Edit)</span>
         <input type="checkbox" id="toggle-floating-icon" checked>
       </div>
       <div class="toggle-row">
@@ -616,13 +632,15 @@
     </div>
 
     <div class="section-card">
-      <div class="label-row">
-        <span>Keyboard Shortcut</span>
+      <div class="label-row">Keyboard Shortcuts</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+        <span style="font-size:11.5px;color:#475569;">Quick Paste / Force-Type</span>
         <span class="shortcut-badge">Alt + V</span>
       </div>
-      <p style="font-size:11px;color:#64748b;margin-top:4px;">
-        Press <b>Alt + V</b> inside any field to force-paste without triggering website Ctrl blocks.
-      </p>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <span style="font-size:11.5px;color:#475569;">Toggle Ghost Mode (Screen Hidden)</span>
+        <span class="shortcut-badge">Alt + H</span>
+      </div>
     </div>
 
     <div class="section-card">

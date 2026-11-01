@@ -19,7 +19,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Feature Toggles
   const toggleAlwaysActive = document.getElementById("toggle-always-active");
   const toggleForceSelect = document.getElementById("toggle-force-select");
+  const toggleGhostMode = document.getElementById("toggle-ghost-mode");
   const toggleVocabHelper = document.getElementById("toggle-vocab-helper");
+
+  // Query Current Tab early
+  let activeTabId = null;
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    activeTabId = tab?.id;
+  } catch (e) {}
 
   // Typer Controls
   const toggleTyperEnabled = document.getElementById("toggle-typer-enabled");
@@ -74,6 +82,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "customWPM",
     "alwaysActive",
     "forceSelect",
+    "ghostMode",
     "vocabHelper",
     "stagedText"
   ]);
@@ -85,6 +94,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   toggleAlwaysActive.checked = settings.alwaysActive ?? false;
   toggleForceSelect.checked = settings.forceSelect ?? false;
+  toggleGhostMode.checked = settings.ghostMode ?? false;
   toggleVocabHelper.checked = settings.vocabHelper ?? true;
 
   if (settings.stagedText) {
@@ -119,6 +129,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     await chrome.storage.local.set({ forceSelect: val });
     if (activeTabId) {
       chrome.tabs.sendMessage(activeTabId, { type: "TOGGLE_UNBLOCK", key: "selection", unblock: val });
+    }
+  });
+
+  // Sync Ghost Mode Toggle
+  toggleGhostMode.addEventListener("change", async () => {
+    const val = toggleGhostMode.checked;
+    await chrome.storage.local.set({ ghostMode: val });
+    if (activeTabId) {
+      chrome.tabs.sendMessage(activeTabId, { type: "TOGGLE_GHOST_MODE", ghostMode: val }).catch(() => {});
     }
   });
 
@@ -359,12 +378,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Query Current Tab for Restrictions
-  let activeTabId = null;
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    activeTabId = tab?.id;
-  } catch (e) {}
-
   async function refreshRestrictions() {
     if (!activeTabId) {
       summaryText.textContent = "Unable to inspect background tabs.";

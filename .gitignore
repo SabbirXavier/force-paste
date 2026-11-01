@@ -14,3 +14,10 @@ $RECYCLE.BIN/
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Extension builds & keys
+*.zip
+*.crx
+*.pem
+forcepaste-*/
+

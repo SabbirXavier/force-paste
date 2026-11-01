@@ -1,6 +1,6 @@
 // ForcePaste & Shield Content Script
-// Handles Human Typing, Floating Badges, Offscreen Clipboard,
-// Vocabulary/Thesaurus Helper, Text Staging, and Unblocking Controllers.
+// Handles Compact Dual-Icon Bar, Staged Text Memory, Ghost Mode (Hidden from Screen Capture),
+// Vocabulary/Thesaurus Helper, and Unblocking Controllers.
 
 (() => {
   if (window.__FORCEPASTE_CONTENT_INITIALIZED__) return;
@@ -18,7 +18,8 @@
     alwaysActive: false,
     forceSelect: false,
     vocabHelper: true,
-    stagedText: ""
+    ghostMode: false,
+    lastStagedText: ""
   };
 
   // State
@@ -34,6 +35,7 @@
     if (res) {
       settings = { ...settings, ...res };
       syncProbeFeatures();
+      updateGhostModeDisplay();
     }
   });
 
@@ -43,8 +45,11 @@
         settings[key] = change.newValue;
       }
       syncProbeFeatures();
-      if (!settings.showFloatingIcon || !settings.enabled) {
+      if (!settings.showFloatingIcon || !settings.enabled || settings.ghostMode) {
         hideButton();
+      }
+      if (changes.ghostMode !== undefined) {
+        updateGhostModeDisplay();
       }
     }
   });
@@ -81,6 +86,13 @@
       return true;
     }
 
+    if (msg.type === "TOGGLE_GHOST_MODE") {
+      settings.ghostMode = !!msg.ghostMode;
+      updateGhostModeDisplay();
+      sendResponse({ success: true, ghostMode: settings.ghostMode });
+      return true;
+    }
+
     if (msg.type === "TRIGGER_PASTE") {
       performPaste();
       sendResponse({ success: true });
@@ -90,6 +102,8 @@
     if (msg.type === "TYPE_STAGED_TEXT") {
       const target = activeElement || (isEditable(document.activeElement) ? document.activeElement : null);
       if (target && msg.text) {
+        settings.lastStagedText = msg.text;
+        chrome.storage.local.set({ lastStagedText: msg.text });
         typeTextIntoElement(target, msg.text);
       }
       sendResponse({ success: true });
@@ -119,12 +133,19 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
+    /* Compact Dual-Icon Floating Dock */
     #ht-button-container {
       position: absolute;
       z-index: 2147483647;
       display: none;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
+      padding: 3px;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       pointer-events: auto;
       transition: opacity 0.15s ease, transform 0.15s ease;
       opacity: 0;
@@ -138,37 +159,42 @@
       transform: translateY(0) scale(1);
     }
 
-    .ht-btn {
+    .ht-icon-btn {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 4px 9px;
-      height: 26px;
-      font-size: 11px;
-      font-weight: 700;
+      justify-content: center;
+      width: 25px;
+      height: 25px;
+      padding: 0;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
       color: #ffffff;
       background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 6px;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
       transition: all 0.12s ease;
-      line-height: 1;
     }
 
-    .ht-btn:hover {
+    .ht-icon-btn:hover {
       background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
-      box-shadow: 0 3px 8px rgba(79, 70, 229, 0.35);
-      transform: translateY(-1px);
+      transform: scale(1.08);
     }
 
-    .ht-btn.ht-stop {
+    .ht-icon-btn.ht-secondary {
+      background: #334155;
+    }
+
+    .ht-icon-btn.ht-secondary:hover {
+      background: #475569;
+    }
+
+    .ht-icon-btn.ht-stop {
       background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     }
 
-    .ht-btn svg {
-      width: 12px;
-      height: 12px;
+    .ht-icon-btn svg {
+      width: 14px;
+      height: 14px;
       fill: currentColor;
       flex-shrink: 0;
     }
@@ -193,7 +219,7 @@
       padding: 18px;
       border-radius: 12px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-      width: 340px;
+      width: 350px;
       max-width: 92vw;
       color: #1f2937;
     }
@@ -210,14 +236,14 @@
 
     #ht-dialog p {
       margin: 0 0 10px 0;
-      font-size: 12px;
+      font-size: 11.5px;
       color: #4b5563;
       line-height: 1.4;
     }
 
     #ht-dialog textarea {
       width: 100%;
-      height: 85px;
+      height: 90px;
       border: 1.5px solid #c7d2fe;
       border-radius: 8px;
       padding: 10px;
@@ -234,16 +260,17 @@
       align-items: center;
       justify-content: space-between;
       margin-top: 12px;
+      gap: 6px;
     }
 
     .ht-dialog-actions-right {
       display: flex;
-      gap: 8px;
+      gap: 6px;
     }
 
     .ht-dialog-actions button {
-      padding: 6px 12px;
-      font-size: 12px;
+      padding: 6px 11px;
+      font-size: 11.5px;
       font-weight: 600;
       border-radius: 6px;
       cursor: pointer;
@@ -258,6 +285,11 @@
       color: #4338ca;
     }
 
+    .ht-btn-clear {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
     .ht-btn-cancel {
       background: #f3f4f6;
       color: #374151;
@@ -268,20 +300,20 @@
       color: #ffffff;
     }
 
-    /* 4th: VOCABULARY / THESAURUS HELPER UI */
+    /* Vocabulary Helper UI */
     #fp-define-badge {
       position: absolute;
       z-index: 2147483647;
       display: none;
       align-items: center;
       gap: 4px;
-      padding: 4px 10px;
-      height: 26px;
+      padding: 4px 9px;
+      height: 24px;
       background: #111827;
       color: #ffffff;
       font-size: 11px;
       font-weight: 700;
-      border-radius: 14px;
+      border-radius: 12px;
       box-shadow: 0 4px 14px rgba(0,0,0,0.3);
       cursor: pointer;
       border: 1px solid rgba(255,255,255,0.2);
@@ -301,7 +333,6 @@
       fill: #a5b4fc;
     }
 
-    /* Floating Vocab Card (Dark Theme matching screenshots) */
     #fp-vocab-card {
       position: absolute;
       z-index: 2147483647;
@@ -346,7 +377,7 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: transform 0.1s ease, background 0.1s ease;
+      transition: transform 0.1s ease;
       flex-shrink: 0;
     }
 
@@ -381,10 +412,6 @@
       cursor: pointer;
       line-height: 1;
       padding: 4px;
-    }
-
-    .fp-close-btn:hover {
-      color: #ffffff;
     }
 
     .fp-section-title {
@@ -450,52 +477,55 @@
       color: #ffffff;
       transform: translateY(-1px);
     }
-
-    .fp-copied-toast {
-      font-size: 10px;
-      color: #34d399;
-      font-weight: 600;
-    }
   `;
 
   // UI elements inside shadow root
   const container = document.createElement("div");
   container.id = "ht-button-container";
 
+  // Icon 1: Quick Paste Button (No text, compact!)
   const pasteBtn = document.createElement("button");
-  pasteBtn.className = "ht-btn";
-  pasteBtn.title = "ForcePaste with Human Typing (Alt+V)";
+  pasteBtn.className = "ht-icon-btn";
+  pasteBtn.title = "ForcePaste stored text or clipboard (Alt+V)";
   pasteBtn.innerHTML = `
     <svg viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4 0.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
-    <span class="ht-label">ForcePaste</span>
   `;
-  container.appendChild(pasteBtn);
 
-  // Fallback modal dialog
+  // Icon 2: Edit/Stage Text Button (Opens Pop-up)
+  const editBtn = document.createElement("button");
+  editBtn.className = "ht-icon-btn ht-secondary";
+  editBtn.title = "Set / Edit Text to Type";
+  editBtn.innerHTML = `
+    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+  `;
+
+  container.appendChild(pasteBtn);
+  container.appendChild(editBtn);
+
+  // Modal dialog
   const dialogOverlay = document.createElement("div");
   dialogOverlay.id = "ht-dialog-overlay";
   dialogOverlay.innerHTML = `
     <div id="ht-dialog">
       <h3>
         <svg style="width:16px;height:16px;fill:#4f46e5;" viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4 0.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
-        ForcePaste - Auto-Type Text
+        ForcePaste - Set Text to Type
       </h3>
-      <p>Paste text below (Ctrl+V works here) or click <b>Paste from Clipboard</b>:</p>
-      <textarea id="ht-modal-textarea" placeholder="Paste text here (Ctrl+V works)..."></textarea>
+      <p>Set your text below once. From then on, clicking the <b>Paste</b> icon will immediately type it without reopening this pop-up!</p>
+      <textarea id="ht-modal-textarea" placeholder="Paste or type text here (Ctrl+V works)..."></textarea>
       <div class="ht-dialog-actions">
-        <button class="ht-btn-clip" id="ht-btn-fetch-clip">
-          <svg style="width:12px;height:12px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4 0.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-          Paste from Clipboard
-        </button>
+        <div style="display:flex;gap:6px;">
+          <button class="ht-btn-clip" id="ht-btn-fetch-clip" title="Paste from clipboard">📋 Paste Clip</button>
+          <button class="ht-btn-clear" id="ht-btn-clear-stored" title="Clear stored text">🗑️ Reset</button>
+        </div>
         <div class="ht-dialog-actions-right">
-          <button class="ht-btn-cancel">Cancel</button>
-          <button class="ht-btn-confirm">Start Typing</button>
+          <button class="ht-btn-cancel" id="ht-btn-cancel-modal">Cancel</button>
+          <button class="ht-btn-confirm" id="ht-btn-confirm-modal">Start Typing</button>
         </div>
       </div>
     </div>
   `;
 
-  // Isolate dialog from website event listeners
   const isolatedEvents = ["keydown", "keyup", "keypress", "contextmenu", "copy", "paste", "cut", "mousedown", "mouseup"];
   isolatedEvents.forEach((evt) => {
     dialogOverlay.addEventListener(evt, (e) => e.stopPropagation(), true);
@@ -539,7 +569,25 @@
     if (!document.documentElement.contains(host)) {
       (document.body || document.documentElement).appendChild(host);
     }
+    if (settings.ghostMode) {
+      host.style.setProperty("display", "none", "important");
+    }
   };
+
+  function updateGhostModeDisplay() {
+    if (settings.ghostMode) {
+      host.style.setProperty("display", "none", "important");
+      if (typeof container !== "undefined" && container) container.classList.remove("ht-visible");
+      if (typeof dialogOverlay !== "undefined" && dialogOverlay) dialogOverlay.style.display = "none";
+      if (typeof defineBadge !== "undefined" && defineBadge) defineBadge.style.display = "none";
+      if (typeof vocabCard !== "undefined" && vocabCard) vocabCard.style.display = "none";
+    } else {
+      host.style.removeProperty("display");
+      if (activeElement && isEditable(activeElement) && settings.enabled && settings.showFloatingIcon && !isTyping) {
+        updateButtonPosition(activeElement);
+      }
+    }
+  }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", mountHost);
@@ -558,6 +606,12 @@
   }
 
   function updateButtonPosition(target) {
+    // If Ghost Mode is active, NEVER show on-screen UI
+    if (settings.ghostMode) {
+      hideButton();
+      return;
+    }
+
     if (!target || !document.contains(target)) {
       hideButton();
       return;
@@ -572,16 +626,17 @@
     const scrollX = window.scrollX || window.pageXOffset || 0;
     const scrollY = window.scrollY || window.pageYOffset || 0;
 
-    const isSmall = rect.height < 32 || rect.width < 120;
+    // Compact dock width is ~58px
+    const isSmall = rect.height < 32 || rect.width < 100;
     let top, left;
 
     if (isSmall) {
-      top = scrollY + rect.top - 30;
+      top = scrollY + rect.top - 32;
       if (top < scrollY + 4) top = scrollY + rect.bottom + 4;
-      left = scrollX + rect.right - 85;
+      left = scrollX + rect.right - 62;
     } else {
       top = scrollY + rect.top + 3;
-      left = scrollX + rect.right - 90;
+      left = scrollX + rect.right - 64;
     }
 
     if (left < scrollX + 4) left = scrollX + 4;
@@ -602,7 +657,7 @@
       if (e.target && isEditable(e.target)) {
         activeElement = e.target;
         if (hideTimeout) clearTimeout(hideTimeout);
-        if (settings.enabled && settings.showFloatingIcon && !isTyping) {
+        if (settings.enabled && settings.showFloatingIcon && !settings.ghostMode && !isTyping) {
           mountHost();
           updateButtonPosition(activeElement);
         }
@@ -655,10 +710,8 @@
     abortTyping = false;
 
     pasteBtn.classList.add("ht-stop");
-    pasteBtn.innerHTML = `
-      <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
-      <span class="ht-label">Stop</span>
-    `;
+    pasteBtn.title = "Stop typing (Escape)";
+    pasteBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>`;
 
     try {
       target.focus();
@@ -704,9 +757,9 @@
       isTyping = false;
       abortTyping = false;
       pasteBtn.classList.remove("ht-stop");
+      pasteBtn.title = "ForcePaste stored text or clipboard (Alt+V)";
       pasteBtn.innerHTML = `
         <svg viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4 0.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
-        <span class="ht-label">ForcePaste</span>
       `;
       if (activeElement) {
         updateButtonPosition(activeElement);
@@ -827,6 +880,7 @@
     return "";
   }
 
+  // Perform paste action
   async function performPaste() {
     if (isTyping) {
       abortTyping = true;
@@ -836,21 +890,33 @@
     const target = activeElement || (isEditable(document.activeElement) ? document.activeElement : null);
     if (!target) return;
 
-    const text = await fetchClipboardText();
-    if (text) {
-      await typeTextIntoElement(target, text);
-    } else {
-      showFallbackDialog(target);
+    // 1. If user previously entered text into the modal, REUSE IT directly! No popup!
+    if (settings.lastStagedText && settings.lastStagedText.trim().length > 0) {
+      await typeTextIntoElement(target, settings.lastStagedText);
+      return;
     }
+
+    // 2. Otherwise try reading from clipboard directly
+    const text = await fetchClipboardText();
+    if (text && text.trim().length > 0) {
+      await typeTextIntoElement(target, text);
+      return;
+    }
+
+    // 3. Only if both are empty do we open the input dialog
+    showSetTextDialog(target);
   }
 
-  function showFallbackDialog(target) {
+  function showSetTextDialog(target) {
+    if (settings.ghostMode) return; // Never show on-screen UI if in Ghost Mode
+
     const textarea = dialogOverlay.querySelector("#ht-modal-textarea");
     const fetchBtn = dialogOverlay.querySelector("#ht-btn-fetch-clip");
-    const cancelBtn = dialogOverlay.querySelector(".ht-btn-cancel");
-    const confirmBtn = dialogOverlay.querySelector(".ht-btn-confirm");
+    const clearBtn = dialogOverlay.querySelector("#ht-btn-clear-stored");
+    const cancelBtn = dialogOverlay.querySelector("#ht-btn-cancel-modal");
+    const confirmBtn = dialogOverlay.querySelector("#ht-btn-confirm-modal");
 
-    textarea.value = "";
+    textarea.value = settings.lastStagedText || "";
     dialogOverlay.style.display = "flex";
     setTimeout(() => textarea.focus(), 60);
 
@@ -864,15 +930,14 @@
       const clipText = await fetchClipboardText();
       if (clipText) {
         textarea.value = clipText;
-      } else {
-        fetchBtn.textContent = "Clipboard empty!";
-        setTimeout(() => {
-          fetchBtn.innerHTML = `
-            <svg style="width:12px;height:12px;fill:currentColor" viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4 0.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-            Paste from Clipboard
-          `;
-        }, 1500);
       }
+    };
+
+    clearBtn.onclick = (e) => {
+      e.stopPropagation();
+      textarea.value = "";
+      settings.lastStagedText = "";
+      chrome.storage.local.set({ lastStagedText: "" });
     };
 
     cancelBtn.onclick = (e) => {
@@ -884,17 +949,33 @@
       e.stopPropagation();
       const text = textarea.value;
       close();
-      if (text && target) {
-        typeTextIntoElement(target, text);
+      if (text && text.length > 0) {
+        // Remember this text so future clicks paste directly without opening pop-up!
+        settings.lastStagedText = text;
+        chrome.storage.local.set({ lastStagedText: text });
+        if (target) {
+          typeTextIntoElement(target, text);
+        }
       }
     };
   }
 
+  // Click on Icon 1: Quick Paste
   pasteBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     performPaste();
   });
 
+  // Click on Icon 2: Open Edit Modal
+  editBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const target = activeElement || (isEditable(document.activeElement) ? document.activeElement : null);
+    showSetTextDialog(target);
+  });
+
+  // Keyboard Shortcuts:
+  // Alt + V: Trigger ForcePaste
+  // Alt + H: Toggle Ghost Mode (Hide/Show on-screen UI from screen captures)
   document.addEventListener(
     "keydown",
     (e) => {
@@ -907,12 +988,20 @@
           performPaste();
         }
       }
+
+      // Alt + H toggles Ghost Mode
+      if (e.altKey && (e.key === "h" || e.key === "H" || e.code === "KeyH")) {
+        e.preventDefault();
+        settings.ghostMode = !settings.ghostMode;
+        chrome.storage.local.set({ ghostMode: settings.ghostMode });
+        updateGhostModeDisplay();
+      }
     },
     true
   );
 
   // =========================================================================
-  // 4TH FEATURE: VOCABULARY / THESAURUS HELPER IMPLEMENTATION
+  // VOCABULARY / THESAURUS HELPER IMPLEMENTATION
   // =========================================================================
 
   let currentAudioUrl = null;
@@ -972,7 +1061,6 @@
       }
     } catch (e) {}
 
-    // Datamuse API fallback / supplement for rich synonyms
     if (result.synonyms.length < 5) {
       try {
         const dmRes = await fetch(`https://api.datamuse.com/words?rel_syn=${encodeURIComponent(word)}&max=15`);
@@ -990,6 +1078,8 @@
   }
 
   async function showVocabModal(word, x, y) {
+    if (settings.ghostMode) return; // Don't show if in Ghost Mode
+
     mountHost();
     selectedWord = word;
     currentAudioUrl = null;
@@ -1002,7 +1092,6 @@
     phoneticEl.textContent = "...";
     contentEl.innerHTML = `<div style="color:#94a3b8;padding:12px 0;">Searching Oxford definitions & synonyms...</div>`;
 
-    // Position modal safely within viewport
     const modalWidth = 330;
     let left = Math.min(Math.max(10, x), window.innerWidth - modalWidth - 20) + window.scrollX;
     let top = y + window.scrollY;
@@ -1049,7 +1138,6 @@
 
     contentEl.innerHTML = html;
 
-    // Attach click listeners to synonyms
     contentEl.querySelectorAll(".fp-synonym-pill").forEach((pill) => {
       pill.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -1060,7 +1148,6 @@
         pill.style.borderColor = "#10b981";
         pill.style.color = "#ffffff";
 
-        // If active field is focused, replace selected text
         if (activeElement && isEditable(activeElement)) {
           insertSingleCharacter(activeElement, syn);
         }
@@ -1075,30 +1162,24 @@
     });
   }
 
-  // Audio pronunciation button click
   shadow.querySelector("#fp-card-speaker").addEventListener("click", (e) => {
     e.stopPropagation();
     if (selectedWord) pronounceWord(selectedWord);
   });
 
-  // Close vocab modal
   shadow.querySelector("#fp-card-close").addEventListener("click", (e) => {
     e.stopPropagation();
     vocabCard.style.display = "none";
   });
 
-  // Handle Text Selection for Floating "Define" Badge
   document.addEventListener("mouseup", (e) => {
-    if (!settings.vocabHelper) return;
-
-    // Ignore clicks inside our shadow DOM
+    if (!settings.vocabHelper || settings.ghostMode) return;
     if (host.contains(e.target)) return;
 
     setTimeout(() => {
       const selection = window.getSelection();
       const text = selection ? selection.toString().trim() : "";
 
-      // Trigger on 1 to 3 words (typical vocabulary range)
       if (text && text.length >= 2 && text.length <= 40 && !text.includes("\n")) {
         const words = text.split(/\s+/);
         if (words.length <= 3) {
@@ -1106,7 +1187,7 @@
             const range = selection.getRangeAt(0);
             const rect = range.getBoundingClientRect();
             if (rect.width > 0 && rect.height > 0) {
-              const x = rect.left + rect.width / 2 - 30 + window.scrollX;
+              const x = rect.left + rect.width / 2 - 25 + window.scrollX;
               const y = rect.bottom + 6 + window.scrollY;
 
               defineBadge.style.left = `${Math.max(10, x)}px`;
@@ -1127,7 +1208,6 @@
     }, 60);
   });
 
-  // Close floating card when clicking outside
   document.addEventListener("mousedown", (e) => {
     if (!host.contains(e.target)) {
       vocabCard.style.display = "none";

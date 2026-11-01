@@ -11,8 +11,10 @@ chrome.runtime.onInstalled.addListener(async () => {
     "naturalJitter",
     "alwaysActive",
     "forceSelect",
+    "ghostMode",
     "vocabHelper",
-    "stagedText"
+    "stagedText",
+    "lastStagedText"
   ]);
 
   const defaultSettings = {
@@ -24,8 +26,10 @@ chrome.runtime.onInstalled.addListener(async () => {
     naturalJitter: true,
     alwaysActive: false,
     forceSelect: false,
+    ghostMode: false,
     vocabHelper: true,
-    stagedText: ""
+    stagedText: "",
+    lastStagedText: ""
   };
 
   const toSet = {};
@@ -115,7 +119,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 });
 
-// Handle Alt+V keyboard shortcut command
+// Handle Keyboard shortcut commands (Alt+V and Alt+H)
 if (chrome.commands?.onCommand) {
   chrome.commands.onCommand.addListener(async (command) => {
     if (command === "human_paste") {
@@ -126,6 +130,18 @@ if (chrome.commands?.onCommand) {
         }
       } catch (err) {
         console.warn("Could not send command to active tab:", err);
+      }
+    } else if (command === "toggle_ghost_mode") {
+      try {
+        const { ghostMode } = await chrome.storage.local.get(["ghostMode"]);
+        const newMode = !ghostMode;
+        await chrome.storage.local.set({ ghostMode: newMode });
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.id) {
+          await chrome.tabs.sendMessage(tab.id, { type: "TOGGLE_GHOST_MODE", ghostMode: newMode });
+        }
+      } catch (err) {
+        console.warn("Could not toggle ghost mode command:", err);
       }
     }
   });

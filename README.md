@@ -5,17 +5,17 @@
 **The Universal Browser Freedom & Productivity Suite for All Major Browsers**
 
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-4f46e5.svg?style=flat-square)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![Version](https://img.shields.io/badge/Version-1.4.0-10b981.svg?style=flat-square)](https://github.com/SabbirXavier/force-paste/releases/latest)
+[![Version](https://img.shields.io/badge/Version-1.4.1-10b981.svg?style=flat-square)](https://github.com/SabbirXavier/force-paste/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Universal Browser Support](https://img.shields.io/badge/Universal-Chrome%20%7C%20Firefox%20%7C%20Brave%20%7C%20Edge%20%7C%20Opera-purple.svg?style=flat-square)](https://github.com/SabbirXavier/force-paste)
 
-*A 100% free, open-source browser extension featuring force-pasting with human typing simulation, tab visibility/focus spoofing (Always Active), text selection & copy unlocking, text staging, and an instant vocabulary/thesaurus helper.*
+*A 100% free, open-source browser extension featuring force-pasting with human typing simulation, tab visibility/focus spoofing (Always Active), text selection & copy unlocking, text staging, compact dual-icon dock, Ghost Mode for screen capture protection, and an instant vocabulary/thesaurus helper.*
 
 <br/>
 
-[![Download for Chrome / Chromium](https://img.shields.io/badge/Chrome%20%2F%20Brave%20%2F%20Edge-Direct%20Download-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.4.0.zip)
+[![Download for Chrome / Chromium](https://img.shields.io/badge/Chrome%20%2F%20Brave%20%2F%20Edge-Direct%20Download-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.4.1.zip)
 &nbsp;&nbsp;
-[![Download for Firefox](https://img.shields.io/badge/Firefox-Direct%20Download-FF7139?style=for-the-badge&logo=firefox&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.4.0.zip)
+[![Download for Firefox](https://img.shields.io/badge/Firefox-Direct%20Download-FF7139?style=for-the-badge&logo=firefox&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.4.1.zip)
 
 <br/>
 
@@ -30,17 +30,24 @@
 Every feature comes with an **individual toggle switch** in the extension popup:
 
 ### ⚡ 1. ForcePaste & Human Typing Engine
+* **Compact Dual-Icon Dock:** Clean, miniature floating bar with two icon-only buttons (`[📋]` Quick Paste & `[📝]` Edit/Stage Text) positioned right above focused fields. No intrusive text labels.
+* **Persistent Text Memory:** Once text is staged or pasted into the pop-up modal, clicking `[📋]` or pressing `Alt + V` immediately types that text on subsequent clicks without ever reopening the popup again until you reset it.
 * **Force Paste via Keystrokes:** Simulates organic `keydown`, `beforeinput`, and `input` events to bypass website copy/paste blockers.
 * **Manual WPM Speed Control:** Set exact typing speed from **10 to 600 Words Per Minute** with live millisecond delay display.
 * **Proportional Human Jitter:** Natural $\pm 25\%$ variation around your target speed with micro-pauses after spaces and punctuation marks.
 * **Alt + V Keyboard Shortcut:** Instantly triggers auto-typing into whichever input field is currently focused.
 
-### 📝 2. Prepared Text Staging & Arranger
+### 👻 2. Ghost Mode (Screen Capture & Recording Protection)
+* **100% Invisible to Screen Captures:** Need to share your screen, stream, or record a video demo? Enable Ghost Mode to immediately hide all floating buttons, popup dialogs, and vocabulary cards (`display: none !important`).
+* **Instant Hotkey Toggle:** Press **Alt + H** anywhere on any page to toggle Ghost Mode in a split second.
+* **Full Paste Access Maintained:** While in Ghost Mode, your **Alt + V** force-paste shortcut continues to work perfectly with zero visual UI footprint.
+
+### 📝 3. Prepared Text Staging & Arranger
 * **Long Text Workspace:** A dedicated scratchpad inside the extension popup where you can paste, edit, and organize long text before inserting it.
 * **Word & Character Counters:** Real-time counters showing word and character metrics.
 * **One-Click Insert:** Click **"⚡ Type into Field"** to stream your staged text directly into the focused field on the page.
 
-### 👁️ 3. Always Active Window (Visibility & Focus Spoofing)
+### 👁️ 4. Always Active Window (Visibility & Focus Spoofing)
 * **Tricks Webpages into Thinking the Tab is Never Hidden:**
   * Overrides `document.visibilityState = 'visible'`
   * Overrides `document.hidden = false`
