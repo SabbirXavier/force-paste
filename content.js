@@ -415,11 +415,11 @@
       width: 320px;
       max-width: 92vw;
       max-height: 440px;
-      background: #ffffff;
-      color: #1e293b;
+      background: #181d24;
+      color: #e2e8f0;
       border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
-      border: 1px solid #e2e8f0;
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.55);
+      border: 1px solid #2d3748;
       padding: 14px 16px;
       display: none;
       font-size: 13px;
@@ -443,16 +443,16 @@
     .fp-word-title {
       font-size: 17px;
       font-weight: 700;
-      color: #0f172a;
+      color: #ffffff;
     }
 
     .fp-speaker-btn {
       width: 26px;
       height: 26px;
       border-radius: 50%;
-      background: #f1f5f9;
-      border: 1px solid #e2e8f0;
-      color: #2563eb;
+      background: #3b82f6;
+      border: none;
+      color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -462,21 +462,21 @@
     }
 
     .fp-speaker-btn:hover {
-      background: #e2e8f0;
+      background: #2563eb;
       transform: scale(1.08);
     }
 
     .fp-speaker-btn svg {
       width: 14px;
       height: 14px;
-      fill: #2563eb;
+      fill: #ffffff;
     }
 
     .fp-lang-pill {
       font-size: 11px;
       font-weight: 700;
-      background: #e0f2fe;
-      color: #0369a1;
+      background: #3b82f6;
+      color: #ffffff;
       padding: 2px 7px;
       border-radius: 6px;
       letter-spacing: 0.3px;
@@ -494,13 +494,14 @@
     }
 
     .fp-close-btn:hover {
-      color: #0f172a;
+      color: #ffffff;
     }
 
     /* 3 Clean Language Tabs: EN Def, Hindi, Bengali (No Assamese) */
     .fp-lang-tabs {
       display: flex;
-      background: #f1f5f9;
+      background: #1e293b;
+      border: 1px solid #334155;
       padding: 3px;
       border-radius: 8px;
       gap: 3px;
@@ -511,7 +512,7 @@
       flex: 1;
       text-align: center;
       background: transparent;
-      color: #64748b;
+      color: #94a3b8;
       font-size: 12px;
       font-weight: 600;
       padding: 5px 8px;
@@ -523,15 +524,15 @@
     }
 
     .fp-lang-tab:hover {
-      color: #1e293b;
-      background: rgba(255, 255, 255, 0.5);
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
     }
 
     .fp-lang-tab.active {
-      background: #ffffff;
-      color: #dc2626;
+      background: #3b82f6;
+      color: #ffffff;
       font-weight: 700;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
     }
 
     .fp-tab-pane {
@@ -546,14 +547,14 @@
       font-size: 11px;
       font-weight: 700;
       font-style: italic;
-      color: #334155;
+      color: #a5b4fc;
       text-transform: uppercase;
       margin-bottom: 4px;
     }
 
     .fp-def-body {
       font-size: 13px;
-      color: #1e293b;
+      color: #cbd5e1;
       line-height: 1.5;
       margin-bottom: 8px;
     }
@@ -561,13 +562,13 @@
     .fp-trans-headline {
       font-size: 16px;
       font-weight: 700;
-      color: #0f172a;
+      color: #60a5fa;
       margin-bottom: 4px;
     }
 
     .fp-trans-rom {
       font-size: 12px;
-      color: #64748b;
+      color: #94a3b8;
       margin-bottom: 8px;
       font-style: italic;
     }
@@ -576,32 +577,32 @@
       margin-bottom: 6px;
       font-size: 12px;
       line-height: 1.45;
-      color: #334155;
+      color: #cbd5e1;
     }
 
     .fp-dict-group b {
-      color: #0f172a;
+      color: #ffffff;
       text-transform: capitalize;
     }
 
     .fp-synonyms-section {
       margin-top: 10px;
       padding-top: 8px;
-      border-top: 1px solid #f1f5f9;
+      border-top: 1px solid #334155;
     }
 
     .fp-syn-label {
       font-size: 10.5px;
       font-weight: 700;
-      color: #64748b;
+      color: #94a3b8;
       margin-bottom: 4px;
     }
 
     .fp-synonym-pill {
       display: inline-block;
-      background: #f8fafc;
-      color: #334155;
-      border: 1px solid #e2e8f0;
+      background: #1e293b;
+      color: #93c5fd;
+      border: 1px solid #3b82f6;
       border-radius: 12px;
       padding: 2px 8px;
       font-size: 11px;
@@ -698,13 +699,13 @@
 
     <!-- Tab Panes -->
     <div id="fp-pane-en" class="fp-tab-pane active">
-      <div id="fp-content-en" style="color:#64748b;font-size:12px;padding:8px 0;">Looking up English definition...</div>
+      <div id="fp-content-en" style="color:#94a3b8;font-size:12px;padding:8px 0;">Looking up English definition...</div>
     </div>
     <div id="fp-pane-hi" class="fp-tab-pane">
-      <div id="fp-content-hi" style="color:#64748b;font-size:12px;padding:8px 0;">Looking up Hindi meaning...</div>
+      <div id="fp-content-hi" style="color:#94a3b8;font-size:12px;padding:8px 0;">Looking up Hindi meaning...</div>
     </div>
     <div id="fp-pane-bn" class="fp-tab-pane">
-      <div id="fp-content-bn" style="color:#64748b;font-size:12px;padding:8px 0;">Looking up Bengali meaning...</div>
+      <div id="fp-content-bn" style="color:#94a3b8;font-size:12px;padding:8px 0;">Looking up Bengali meaning...</div>
     </div>
   `;
 
@@ -1656,12 +1657,12 @@
           <div style="margin-bottom:8px;">
             ${d.pos ? `<div class="fp-pos-label">${d.pos}</div>` : ""}
             <div class="fp-def-body">${d.def}</div>
-            ${d.example ? `<div style="font-size:11px;color:#64748b;font-style:italic;margin-top:2px;">"${d.example}"</div>` : ""}
+            ${d.example ? `<div style="font-size:11px;color:#94a3b8;font-style:italic;margin-top:2px;">"${d.example}"</div>` : ""}
           </div>
         `;
       });
     } else {
-      enHtml = `<div style="color:#64748b;font-size:12px;">No definition found.</div>`;
+      enHtml = `<div style="color:#94a3b8;font-size:12px;">No definition found.</div>`;
     }
 
     if (data.en.synonyms.length > 0) {
@@ -1686,7 +1687,7 @@
         });
       }
     } else {
-      hiHtml = `<div style="color:#64748b;font-size:12px;">No Hindi translation found.</div>`;
+      hiHtml = `<div style="color:#94a3b8;font-size:12px;">No Hindi translation found.</div>`;
     }
     if (data.hi.synonyms.length > 0) {
       hiHtml += `<div class="fp-synonyms-section"><div class="fp-syn-label">Alternatives:</div>`;
@@ -1710,7 +1711,7 @@
         });
       }
     } else {
-      bnHtml = `<div style="color:#64748b;font-size:12px;">No Bengali translation found.</div>`;
+      bnHtml = `<div style="color:#94a3b8;font-size:12px;">No Bengali translation found.</div>`;
     }
     if (data.bn.synonyms.length > 0) {
       bnHtml += `<div class="fp-synonyms-section"><div class="fp-syn-label">Alternatives:</div>`;
@@ -1814,13 +1815,17 @@
     defineBadge.style.display = "none";
   });
 
-  async function showVocabModal(word, badgeEl) {
+  async function showVocabModal(word, badgeElOrX, maybeY) {
     if (settings.ghostMode) return;
     mountHost();
 
-    // Capture badge position then immediately hide define badge to avoid overlap
-    let badgeRect = badgeEl && badgeEl.getBoundingClientRect ? badgeEl.getBoundingClientRect() : null;
+    // Immediately hide define badge to avoid overlap with modal
     defineBadge.style.display = "none";
+
+    let badgeRect = null;
+    if (badgeElOrX && typeof badgeElOrX.getBoundingClientRect === "function") {
+      badgeRect = badgeElOrX.getBoundingClientRect();
+    }
 
     const cleanWord = word.trim().replace(/^[\s,.;:!?'"()\[\]]+|[\s,.;:!?'"()\[\]]+$/g, "") || word.trim();
     selectedWord = cleanWord;
@@ -1831,17 +1836,17 @@
     if (langBadgeEl) langBadgeEl.textContent = "EN";
 
     // Set initial loading states
-    shadow.querySelector("#fp-content-en").innerHTML = `<div style="color:#64748b;font-size:12px;padding:8px 0;">Looking up English definition...</div>`;
-    shadow.querySelector("#fp-content-hi").innerHTML = `<div style="color:#64748b;font-size:12px;padding:8px 0;">Looking up Hindi meaning...</div>`;
-    shadow.querySelector("#fp-content-bn").innerHTML = `<div style="color:#64748b;font-size:12px;padding:8px 0;">Looking up Bengali meaning...</div>`;
+    shadow.querySelector("#fp-content-en").innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:8px 0;">Looking up English definition...</div>`;
+    shadow.querySelector("#fp-content-hi").innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:8px 0;">Looking up Hindi meaning...</div>`;
+    shadow.querySelector("#fp-content-bn").innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:8px 0;">Looking up Bengali meaning...</div>`;
 
     switchVocabTab("en");
 
     // Position card directly where badge was, with viewport awareness
     let modalWidth = 320;
     let modalHeight = 300;
-    let left = badgeRect ? badgeRect.left + window.scrollX - 10 : window.innerWidth / 2 - 160;
-    let top = badgeRect ? badgeRect.top + window.scrollY : 120 + window.scrollY;
+    let left = badgeRect ? badgeRect.left + window.scrollX - 10 : (typeof badgeElOrX === "number" ? badgeElOrX : window.innerWidth / 2 - 160);
+    let top = badgeRect ? badgeRect.top + window.scrollY : (typeof maybeY === "number" ? maybeY + window.scrollY : 120 + window.scrollY);
 
     // If card overflows viewport at bottom, position it above selection
     if (badgeRect && (badgeRect.bottom + modalHeight > window.innerHeight) && (badgeRect.top - modalHeight > 10)) {
@@ -1885,7 +1890,7 @@
               defineBadge.style.left = `${Math.max(10, x)}px`;
               defineBadge.style.top = `${y}px`;
               defineBadge.style.display = "flex";
-              vocabCard.style.display = "none"; // DO NOT show modal until Define is clicked!
+              vocabCard.style.display = "none"; // Strictly DO NOT show modal until Define is clicked!
 
               defineBadge.onclick = (evt) => {
                 evt.stopPropagation();
@@ -1898,6 +1903,7 @@
       }
 
       defineBadge.style.display = "none";
+      vocabCard.style.display = "none";
     }, 60);
   });
 
