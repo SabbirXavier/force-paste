@@ -17,7 +17,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Feature Toggles
-  const toggleAlwaysActive = document.getElementById("toggle-always-active");
+  const headerAlwaysActive = document.getElementById("header-always-active");
+  const descAlwaysActive = document.getElementById("desc-always-active");
+  const toggleAlwaysActiveCurrent = document.getElementById("toggle-always-active-current");
+  const alwaysActiveCountBadge = document.getElementById("always-active-count-badge");
+  const chevronAlwaysActive = document.getElementById("chevron-always-active");
+  const drawerAlwaysActive = document.getElementById("drawer-always-active");
+  const tabDrawerTotalCount = document.getElementById("tab-drawer-total-count");
+  const tabListContainer = document.getElementById("tab-list-container");
+  const btnTabsEnableAll = document.getElementById("btn-tabs-enable-all");
+  const btnTabsDisableAll = document.getElementById("btn-tabs-disable-all");
+  const btnTabsRefresh = document.getElementById("btn-tabs-refresh");
+
   const toggleForceSelect = document.getElementById("toggle-force-select");
   const toggleGhostMode = document.getElementById("toggle-ghost-mode");
   const toggleVocabHelper = document.getElementById("toggle-vocab-helper");
@@ -116,7 +127,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "naturalJitter",
     "speedMode",
     "customWPM",
-    "alwaysActive",
+    "alwaysActiveTabIds",
     "forceSelect",
     "ghostMode",
     "vocabHelper",
@@ -129,7 +140,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   toggleJitter.checked = settings.naturalJitter ?? true;
   selectSpeed.value = settings.speedMode || "custom";
 
-  toggleAlwaysActive.checked = settings.alwaysActive ?? false;
   toggleForceSelect.checked = settings.forceSelect ?? false;
   toggleGhostMode.checked = settings.ghostMode ?? false;
   toggleVocabHelper.checked = settings.vocabHelper ?? true;
@@ -152,12 +162,267 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   updateWpmDisplay(currentWPM);
 
-  // Sync Always Active Toggle
-  toggleAlwaysActive.addEventListener("change", async () => {
-    const val = toggleAlwaysActive.checked;
-    await chrome.storage.local.set({ alwaysActive: val });
-    await safeSendMessage({ type: "TOGGLE_UNBLOCK", key: "alwaysActive", unblock: val });
+  // --- Tab-Specific Always Active Logic ---
+  let isAlwaysActiveDrawerOpen = false;
+
+  function toggleAlwaysActiveDrawer(force) {
+    isAlwaysActiveDrawerOpen = typeof force === "boolean" ? force : !isAlwaysActiveDrawerOpen;
+    if (drawerAlwaysActive) {
+      drawerAlwaysActive.style.display = isAlwaysActiveDrawerOpen ? "block" : "none";
+    }
+    if (chevronAlwaysActive) {
+      chevronAlwaysActive.style.transform = isAlwaysActiveDrawerOpen ? "rotate(180deg)" : "rotate(0deg)";
+    }
+    if (isAlwaysActiveDrawerOpen) {
+      renderAlwaysActiveTabs();
+    }
+  }
+
+  headerAlwaysActive?.addEventListener("click", () => toggleAlwaysActiveDrawer());
+  descAlwaysActive?.addEventListener("click", () => toggleAlwaysActiveDrawer());
+
+  async function getActiveTabsAlwaysActive() {
+    const res = await chrome.storage.local.get(["alwaysActiveTabIds"]);
+    return Array.isArray(res.alwaysActiveTabIds) ? res.alwaysActiveTabIds : [];
+  }
+
+  async function saveActiveTabsAlwaysActive(ids) {
+    await chrome.storage.local.set({ alwaysActiveTabIds: ids });
+  }
+
+  async function renderAlwaysActiveTabs() {
+    if (!tabListContainer) return;
+
+    try {
+      // 1. Query all open tabs in current window
+      const openTabs = await chrome.tabs.query({ currentWindow: true });
+      let activeIds = await getActiveTabsAlwaysActive();
+
+      // 2. Clean up any closed / non-existent tabs from storage automatically
+      const currentTabIdsSet = new Set(openTabs.map((t) => t.id));
+      const cleanedIds = activeIds.filter((id) => currentTabIdsSet.has(id));
+      if (cleanedIds.length !== activeIds.length) {
+        activeIds = cleanedIds;
+        await saveActiveTabsAlwaysActive(activeIds);
+      }
+
+      // 3. Update summary badges & counts
+      const count = activeIds.length;
+      if (alwaysActiveCountBadge) {
+        if (count === 0) {
+          alwaysActiveCountBadge.textContent = "Off";
+          alwaysActiveCountBadge.classList.remove("active");
+        } else {
+          alwaysActiveCountBadge.textContent = `${count} Active`;
+          alwaysActiveCountBadge.classList.add("active");
+        }
+      }
+
+      if (tabDrawerTotalCount) {
+        tabDrawerTotalCount.textContent = `(${openTabs.length})`;
+      }
+
+      // 4. Update Current Tab Quick Switch in Header
+      if (toggleAlwaysActiveCurrent) {
+        toggleAlwaysActiveCurrent.checked = activeTabId ? activeIds.includes(activeTabId) : false;
+      }
+
+      // 5. Sort tabs: active current tab first, then the rest by index
+      const sortedTabs = [...openTabs].sort((a, b) => {
+        if (a.id === activeTabId) return -1;
+        if (b.id === activeTabId) return 1;
+        return a.index - b.index;
+      });
+
+      // 6. Build Tab Rows HTML
+      tabListContainer.innerHTML = "";
+
+      if (sortedTabs.length === 0) {
+        tabListContainer.innerHTML = `<div style="color:#94a3b8;font-size:11px;text-align:center;padding:12px;">No open tabs detected</div>`;
+        return;
+      }
+
+      sortedTabs.forEach((tab) => {
+        const isCurrent = tab.id === activeTabId;
+        const isTabActive = activeIds.includes(tab.id);
+
+        let domain = "";
+        try {
+          if (tab.url) {
+            const parsed = new URL(tab.url);
+            domain = parsed.hostname || parsed.protocol;
+          }
+        } catch (e) {
+          domain = "system page";
+        }
+
+        const titleText = tab.title || domain || "Untitled Tab";
+        const faviconSrc = tab.favIconUrl || "icons/icon-16.png";
+
+        const row = document.createElement("div");
+        row.className = `tab-item-row${isTabActive ? " is-active" : ""}${isCurrent ? " is-current" : ""}`;
+
+        const safeTitle = titleText.replace(/"/g, "&quot;");
+        const safeUrl = (tab.url || "").replace(/"/g, "&quot;");
+
+        row.innerHTML = `
+          <img class="tab-item-favicon" src="${faviconSrc}" onerror="this.src='icons/icon-16.png'">
+          <div class="tab-item-info">
+            <div class="tab-item-title-row">
+              <span class="tab-item-title" title="${safeTitle}">${safeTitle}</span>
+              ${isCurrent ? `<span class="tab-badge-current">This Tab</span>` : ""}
+            </div>
+            <div class="tab-item-url" title="${safeUrl}">${domain}</div>
+          </div>
+          <label class="switch-sm" title="Toggle Always Active for this tab" onclick="event.stopPropagation()">
+            <input type="checkbox" class="tab-item-toggle" data-tab-id="${tab.id}" ${isTabActive ? "checked" : ""}>
+            <span class="slider-sm"></span>
+          </label>
+        `;
+
+        // Switch toggle listener for this tab
+        const switchInput = row.querySelector(".tab-item-toggle");
+        switchInput.addEventListener("change", async (e) => {
+          e.stopPropagation();
+          const isChecked = switchInput.checked;
+          let currentIds = await getActiveTabsAlwaysActive();
+
+          if (isChecked) {
+            if (!currentIds.includes(tab.id)) currentIds.push(tab.id);
+          } else {
+            currentIds = currentIds.filter((id) => id !== tab.id);
+          }
+
+          await saveActiveTabsAlwaysActive(currentIds);
+
+          // Notify the specific tab content script
+          try {
+            await chrome.tabs.sendMessage(tab.id, {
+              type: "SET_TAB_ALWAYS_ACTIVE",
+              enabled: isChecked
+            });
+          } catch (err) {}
+
+          // Update row styling and counters
+          if (isChecked) {
+            row.classList.add("is-active");
+          } else {
+            row.classList.remove("is-active");
+          }
+
+          if (isCurrent && toggleAlwaysActiveCurrent) {
+            toggleAlwaysActiveCurrent.checked = isChecked;
+          }
+
+          const newCount = currentIds.length;
+          if (alwaysActiveCountBadge) {
+            if (newCount === 0) {
+              alwaysActiveCountBadge.textContent = "Off";
+              alwaysActiveCountBadge.classList.remove("active");
+            } else {
+              alwaysActiveCountBadge.textContent = `${newCount} Active`;
+              alwaysActiveCountBadge.classList.add("active");
+            }
+          }
+
+          if (isCurrent) {
+            setTimeout(refreshRestrictions, 150);
+          }
+        });
+
+        tabListContainer.appendChild(row);
+      });
+    } catch (err) {
+      console.warn("Could not render always active tabs list:", err);
+    }
+  }
+
+  // Toggle Current Tab Switch in Header
+  toggleAlwaysActiveCurrent?.addEventListener("change", async () => {
+    if (!activeTabId) return;
+    const isChecked = toggleAlwaysActiveCurrent.checked;
+    let currentIds = await getActiveTabsAlwaysActive();
+
+    if (isChecked) {
+      if (!currentIds.includes(activeTabId)) currentIds.push(activeTabId);
+    } else {
+      currentIds = currentIds.filter((id) => id !== activeTabId);
+    }
+
+    await saveActiveTabsAlwaysActive(currentIds);
+
+    try {
+      await chrome.tabs.sendMessage(activeTabId, {
+        type: "SET_TAB_ALWAYS_ACTIVE",
+        enabled: isChecked
+      });
+    } catch (err) {}
+
+    renderAlwaysActiveTabs();
+    setTimeout(refreshRestrictions, 150);
   });
+
+  // Action Buttons
+  btnTabsEnableAll?.addEventListener("click", async () => {
+    try {
+      const openTabs = await chrome.tabs.query({ currentWindow: true });
+      const allIds = openTabs.map((t) => t.id).filter(Boolean);
+      await saveActiveTabsAlwaysActive(allIds);
+
+      for (const tab of openTabs) {
+        try {
+          await chrome.tabs.sendMessage(tab.id, {
+            type: "SET_TAB_ALWAYS_ACTIVE",
+            enabled: true
+          });
+        } catch (err) {}
+      }
+
+      renderAlwaysActiveTabs();
+      setTimeout(refreshRestrictions, 150);
+    } catch (err) {}
+  });
+
+  btnTabsDisableAll?.addEventListener("click", async () => {
+    try {
+      const openTabs = await chrome.tabs.query({ currentWindow: true });
+      await saveActiveTabsAlwaysActive([]);
+
+      for (const tab of openTabs) {
+        try {
+          await chrome.tabs.sendMessage(tab.id, {
+            type: "SET_TAB_ALWAYS_ACTIVE",
+            enabled: false
+          });
+        } catch (err) {}
+      }
+
+      renderAlwaysActiveTabs();
+      setTimeout(refreshRestrictions, 150);
+    } catch (err) {}
+  });
+
+  btnTabsRefresh?.addEventListener("click", () => {
+    renderAlwaysActiveTabs();
+  });
+
+  // Initial tab render for accurate badge and current tab switch state
+  renderAlwaysActiveTabs();
+
+  // Live real-time tab event updates while popup is open
+  if (chrome.tabs?.onCreated) {
+    chrome.tabs.onCreated.addListener(() => renderAlwaysActiveTabs());
+  }
+  if (chrome.tabs?.onRemoved) {
+    chrome.tabs.onRemoved.addListener(() => renderAlwaysActiveTabs());
+  }
+  if (chrome.tabs?.onUpdated) {
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+      if (changeInfo.status === "complete" || changeInfo.title || changeInfo.url) {
+        renderAlwaysActiveTabs();
+      }
+    });
+  }
 
   // Sync Force Select Toggle
   toggleForceSelect.addEventListener("change", async () => {

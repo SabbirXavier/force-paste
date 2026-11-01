@@ -29,11 +29,25 @@
   let hideTimeout = null;
   let currentRestrictions = null;
   let selectedWord = "";
+  let myTabId = null;
+
+  // Ask background for our tab ID and tab-specific Always Active state
+  async function checkTabAlwaysActive() {
+    try {
+      const resp = await chrome.runtime.sendMessage({ type: "CHECK_TAB_ALWAYS_ACTIVE" });
+      if (resp && resp.tabId) {
+        myTabId = resp.tabId;
+        settings.alwaysActive = !!resp.alwaysActive;
+        window.postMessage({ type: "HT_SET_UNBLOCK_STATE", key: "alwaysActive", unblock: !!settings.alwaysActive }, "*");
+      }
+    } catch (e) {}
+  }
 
   // Load settings
   chrome.storage.local.get(null, (res) => {
     if (res) {
       settings = { ...settings, ...res };
+      checkTabAlwaysActive();
       syncProbeFeatures();
       updateGhostModeDisplay();
     }
@@ -42,7 +56,17 @@
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local") {
       for (const [key, change] of Object.entries(changes)) {
-        settings[key] = change.newValue;
+        if (key !== "alwaysActive") {
+          settings[key] = change.newValue;
+        }
+      }
+      if (changes.alwaysActiveTabIds && myTabId) {
+        const activeIds = changes.alwaysActiveTabIds.newValue || [];
+        const isMyTabActive = Array.isArray(activeIds) && activeIds.includes(myTabId);
+        if (settings.alwaysActive !== isMyTabActive) {
+          settings.alwaysActive = isMyTabActive;
+          window.postMessage({ type: "HT_SET_UNBLOCK_STATE", key: "alwaysActive", unblock: isMyTabActive }, "*");
+        }
       }
       syncProbeFeatures();
       if (!settings.showFloatingIcon || !settings.enabled || settings.ghostMode) {
@@ -76,7 +100,21 @@
       return true;
     }
 
+    if (msg.type === "SET_TAB_ALWAYS_ACTIVE") {
+      settings.alwaysActive = !!msg.enabled;
+      window.postMessage({
+        type: "HT_SET_UNBLOCK_STATE",
+        key: "alwaysActive",
+        unblock: !!msg.enabled
+      }, "*");
+      sendResponse({ success: true, enabled: settings.alwaysActive });
+      return true;
+    }
+
     if (msg.type === "TOGGLE_UNBLOCK") {
+      if (msg.key === "alwaysActive") {
+        settings.alwaysActive = !!msg.unblock;
+      }
       window.postMessage({
         type: "HT_SET_UNBLOCK_STATE",
         key: msg.key,

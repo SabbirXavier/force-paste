@@ -10,6 +10,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     "showFloatingIcon",
     "naturalJitter",
     "alwaysActive",
+    "alwaysActiveTabIds",
     "forceSelect",
     "ghostMode",
     "vocabHelper",
@@ -25,6 +26,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     showFloatingIcon: true,
     naturalJitter: true,
     alwaysActive: false,
+    alwaysActiveTabIds: [],
     forceSelect: false,
     ghostMode: false,
     vocabHelper: true,
@@ -109,8 +111,22 @@ async function ensureOffscreenDocument() {
   } catch (err) {}
 }
 
-// Handle clipboard reading request from content script
+// Handle messages from content scripts and popups
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === "CHECK_TAB_ALWAYS_ACTIVE") {
+    (async () => {
+      try {
+        const tabId = sender.tab?.id;
+        const { alwaysActiveTabIds = [] } = await chrome.storage.local.get(["alwaysActiveTabIds"]);
+        const isEnabled = tabId ? (Array.isArray(alwaysActiveTabIds) && alwaysActiveTabIds.includes(tabId)) : false;
+        sendResponse({ tabId, alwaysActive: isEnabled });
+      } catch (e) {
+        sendResponse({ tabId: null, alwaysActive: false });
+      }
+    })();
+    return true;
+  }
+
   if (msg.type === "READ_CLIPBOARD_BG") {
     (async () => {
       try {
@@ -131,6 +147,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true; // Keep channel open
   }
 });
+
+// Clean up tab-specific Always Active state immediately when a tab is closed in the browser
+if (chrome.tabs?.onRemoved) {
+  chrome.tabs.onRemoved.addListener(async (closedTabId) => {
+    try {
+      const { alwaysActiveTabIds = [] } = await chrome.storage.local.get(["alwaysActiveTabIds"]);
+      if (Array.isArray(alwaysActiveTabIds) && alwaysActiveTabIds.includes(closedTabId)) {
+        const updated = alwaysActiveTabIds.filter((id) => id !== closedTabId);
+        await chrome.storage.local.set({ alwaysActiveTabIds: updated });
+      }
+    } catch (err) {
+      console.warn("Could not clean up closed tab state:", err);
+    }
+  });
+}
 
 // Handle Keyboard shortcut commands (Alt+V and Alt+H)
 if (chrome.commands?.onCommand) {
