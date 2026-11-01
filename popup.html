@@ -702,14 +702,29 @@
       <div class="vocab-result-box" id="vocab-result-box">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
           <div style="display:flex;align-items:center;gap:6px;">
-            <button class="banner-btn" style="padding:3px 8px;" id="btn-vocab-speak" title="Listen to pronunciation">🔊 Speak</button>
-            <b id="vocab-word-display" style="font-size:14px;color:#ffffff;">word</b>
-            <span id="vocab-phonetic-display" style="color:#94a3b8;font-size:11px;">/phonetic/</span>
+            <b id="vocab-word-display" style="font-size:15px;color:#ffffff;">word</b>
+            <button class="banner-btn" style="padding:2px 7px;" id="btn-vocab-speak" title="Listen to pronunciation">🔊 Speak</button>
+            <span id="popup-vocab-lang-badge" style="font-size:10px;padding:1px 5px;background:#3b82f6;color:#fff;border-radius:4px;font-weight:700;">EN</span>
           </div>
         </div>
-        <div id="vocab-definitions-display" style="line-height:1.4;margin-bottom:8px;"></div>
-        <div style="font-size:11px;font-weight:700;color:#60a5fa;margin-bottom:4px;">Synonyms (Click to copy):</div>
-        <div id="vocab-synonyms-display"></div>
+
+        <div style="display:flex;background:#1e293b;padding:3px;border-radius:6px;gap:3px;margin-bottom:10px;">
+          <button class="popup-lang-tab active" data-tab="en" id="popup-tab-en" style="flex:1;background:#ffffff;color:#dc2626;border:none;border-radius:4px;padding:4px 6px;font-size:11px;font-weight:700;cursor:pointer;">EN Def</button>
+          <button class="popup-lang-tab" data-tab="hi" id="popup-tab-hi" style="flex:1;background:transparent;color:#94a3b8;border:none;border-radius:4px;padding:4px 6px;font-size:11px;font-weight:600;cursor:pointer;">Hindi</button>
+          <button class="popup-lang-tab" data-tab="bn" id="popup-tab-bn" style="flex:1;background:transparent;color:#94a3b8;border:none;border-radius:4px;padding:4px 6px;font-size:11px;font-weight:600;cursor:pointer;">Bengali</button>
+        </div>
+
+        <div id="popup-pane-en" class="popup-pane active">
+          <div id="vocab-definitions-display" style="line-height:1.4;margin-bottom:8px;"></div>
+          <div style="font-size:11px;font-weight:700;color:#60a5fa;margin-bottom:4px;">Synonyms (Click to copy):</div>
+          <div id="vocab-synonyms-display"></div>
+        </div>
+        <div id="popup-pane-hi" class="popup-pane" style="display:none;line-height:1.4;">
+          <div id="popup-hi-display"></div>
+        </div>
+        <div id="popup-pane-bn" class="popup-pane" style="display:none;line-height:1.4;">
+          <div id="popup-bn-display"></div>
+        </div>
       </div>
     </div>
   </div>

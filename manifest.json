@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ForcePaste: Smart Paste & Key Shield",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Force-paste with human typing, keep tabs always active, unlock text selection & copy, and look up instant definitions & synonyms.",
   "permissions": [
     "storage",

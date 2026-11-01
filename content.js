@@ -356,40 +356,26 @@
     #fp-vocab-card {
       position: absolute;
       z-index: 2147483647;
-      width: 330px;
+      width: 320px;
       max-width: 92vw;
       max-height: 440px;
-      background: #181d24;
-      color: #e2e8f0;
+      background: #ffffff;
+      color: #1e293b;
       border-radius: 12px;
-      box-shadow: 0 14px 35px rgba(0,0,0,0.45);
-      border: 1px solid #2d3748;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
+      border: 1px solid #e2e8f0;
       padding: 14px 16px;
       display: none;
-      font-size: 12px;
+      font-size: 13px;
       overflow-y: auto;
       pointer-events: auto;
-    }
-
-    .fp-card-topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-    }
-
-    .fp-oxford-label {
-      font-size: 11px;
-      color: #94a3b8;
     }
 
     .fp-card-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid #2d3748;
-      padding-bottom: 10px;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
     }
 
     .fp-card-title-row {
@@ -398,126 +384,173 @@
       gap: 8px;
     }
 
+    .fp-word-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
     .fp-speaker-btn {
-      width: 28px;
-      height: 28px;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
-      background: #3b82f6;
-      border: none;
-      color: white;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      color: #2563eb;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: transform 0.1s ease;
+      transition: all 0.12s ease;
       flex-shrink: 0;
     }
 
     .fp-speaker-btn:hover {
-      background: #2563eb;
+      background: #e2e8f0;
       transform: scale(1.08);
     }
 
     .fp-speaker-btn svg {
       width: 14px;
       height: 14px;
-      fill: currentColor;
+      fill: #2563eb;
     }
 
-    .fp-word-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: #ffffff;
-    }
-
-    .fp-lang-badge {
-      font-size: 9.5px;
-      font-weight: 700;
-      background: #3b82f6;
-      color: #ffffff;
-      padding: 1px 6px;
-      border-radius: 4px;
-      text-transform: capitalize;
-    }
-
-    .fp-word-phonetic {
+    .fp-lang-pill {
       font-size: 11px;
-      color: #94a3b8;
-      margin-left: 2px;
+      font-weight: 700;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 2px 7px;
+      border-radius: 6px;
+      letter-spacing: 0.3px;
     }
 
     .fp-close-btn {
       background: transparent;
       border: none;
       color: #94a3b8;
-      font-size: 16px;
+      font-size: 18px;
       cursor: pointer;
       line-height: 1;
-      padding: 4px;
+      padding: 2px;
+      transition: color 0.1s ease;
     }
 
-    .fp-trans-box {
-      margin-bottom: 8px;
-      padding: 6px 10px;
-      background: #1e293b;
+    .fp-close-btn:hover {
+      color: #0f172a;
+    }
+
+    /* 3 Clean Language Tabs: EN Def, Hindi, Bengali (No Assamese) */
+    .fp-lang-tabs {
+      display: flex;
+      background: #f1f5f9;
+      padding: 3px;
+      border-radius: 8px;
+      gap: 3px;
+      margin: 8px 0 12px 0;
+    }
+
+    .fp-lang-tab {
+      flex: 1;
+      text-align: center;
+      background: transparent;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 8px;
+      border: none;
       border-radius: 6px;
-      border-left: 3px solid #3b82f6;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
     }
 
-    .fp-section-title {
-      font-size: 12px;
+    .fp-lang-tab:hover {
+      color: #1e293b;
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    .fp-lang-tab.active {
+      background: #ffffff;
+      color: #dc2626;
       font-weight: 700;
-      color: #60a5fa;
-      margin-top: 10px;
-      margin-bottom: 5px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     }
 
-    .fp-part-of-speech {
-      display: inline-block;
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      padding: 1px 6px;
-      border-radius: 4px;
-      background: #334155;
-      color: #cbd5e1;
-      margin-right: 6px;
+    .fp-tab-pane {
+      display: none;
     }
 
-    .fp-definition-item {
-      margin-bottom: 8px;
-      line-height: 1.45;
-      color: #cbd5e1;
-      font-size: 12px;
+    .fp-tab-pane.active {
+      display: block;
     }
 
-    .fp-example {
+    .fp-pos-label {
       font-size: 11px;
+      font-weight: 700;
       font-style: italic;
-      color: #94a3b8;
-      margin-top: 2px;
-      border-left: 2px solid #475569;
-      padding-left: 6px;
+      color: #334155;
+      text-transform: uppercase;
+      margin-bottom: 4px;
     }
 
-    .fp-synonyms-wrap {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-      margin-top: 6px;
+    .fp-def-body {
+      font-size: 13px;
+      color: #1e293b;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .fp-trans-headline {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .fp-trans-rom {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 8px;
+      font-style: italic;
+    }
+
+    .fp-dict-group {
+      margin-bottom: 6px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #334155;
+    }
+
+    .fp-dict-group b {
+      color: #0f172a;
+      text-transform: capitalize;
+    }
+
+    .fp-synonyms-section {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .fp-syn-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #64748b;
+      margin-bottom: 4px;
     }
 
     .fp-synonym-pill {
-      background: #1e293b;
-      color: #93c5fd;
-      border: 1px solid #3b82f6;
+      display: inline-block;
+      background: #f8fafc;
+      color: #334155;
+      border: 1px solid #e2e8f0;
       border-radius: 12px;
       padding: 2px 8px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 500;
+      margin: 2px;
       cursor: pointer;
       transition: all 0.1s ease;
     }
@@ -525,33 +558,7 @@
     .fp-synonym-pill:hover {
       background: #3b82f6;
       color: #ffffff;
-      transform: translateY(-1px);
-    }
-
-    .fp-card-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 10px;
-      padding-top: 8px;
-      border-top: 1px solid #2d3748;
-    }
-
-    .fp-see-all-btn {
-      background: #27272a;
-      color: #e4e4e7;
-      border: 1px solid #3f3f46;
-      border-radius: 14px;
-      padding: 4px 12px;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.12s ease;
-    }
-
-    .fp-see-all-btn:hover {
-      background: #3f3f46;
-      color: #ffffff;
+      border-color: #3b82f6;
     }
   `;
 
@@ -615,30 +622,33 @@
   const vocabCard = document.createElement("div");
   vocabCard.id = "fp-vocab-card";
   vocabCard.innerHTML = `
-    <div class="fp-card-topbar">
-      <span class="fp-oxford-label">Definitions from <u>Oxford Languages</u></span>
-      <button class="fp-close-btn" id="fp-card-close" title="Close">&times;</button>
-    </div>
     <div class="fp-card-header">
       <div class="fp-card-title-row">
+        <span class="fp-word-title" id="fp-card-word">word</span>
         <button class="fp-speaker-btn" title="Pronounce word" id="fp-card-speaker">
           <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
         </button>
-        <div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span class="fp-word-title" id="fp-card-word">word</span>
-            <span class="fp-lang-badge" id="fp-card-lang" style="display:none;"></span>
-          </div>
-          <span class="fp-word-phonetic" id="fp-card-phonetic">/phonetic/</span>
-        </div>
+        <span class="fp-lang-pill" id="fp-card-lang">EN</span>
       </div>
+      <button class="fp-close-btn" id="fp-card-close" title="Close">&times;</button>
     </div>
-    <div id="fp-card-content">
-      <div style="color:#94a3b8;padding:8px 0;">Looking up definitions & translations...</div>
+
+    <!-- 3 Language Tabs: English, Hindi, Bengali (No Assamese) -->
+    <div class="fp-lang-tabs" id="fp-lang-tabs">
+      <button class="fp-lang-tab active" data-tab="en" id="fp-tab-en">EN Def</button>
+      <button class="fp-lang-tab" data-tab="hi" id="fp-tab-hi">Hindi</button>
+      <button class="fp-lang-tab" data-tab="bn" id="fp-tab-bn">Bengali</button>
     </div>
-    <div class="fp-card-footer">
-      <button class="fp-see-all-btn" id="fp-card-see-all">See all definitions</button>
-      <span style="font-size:10px;color:#64748b;font-style:italic;">ForcePaste Dictionary</span>
+
+    <!-- Tab Panes -->
+    <div id="fp-pane-en" class="fp-tab-pane active">
+      <div id="fp-content-en" style="color:#64748b;font-size:12px;padding:8px 0;">Looking up English definition...</div>
+    </div>
+    <div id="fp-pane-hi" class="fp-tab-pane">
+      <div id="fp-content-hi" style="color:#64748b;font-size:12px;padding:8px 0;">Looking up Hindi meaning...</div>
+    </div>
+    <div id="fp-pane-bn" class="fp-tab-pane">
+      <div id="fp-content-bn" style="color:#64748b;font-size:12px;padding:8px 0;">Looking up Bengali meaning...</div>
     </div>
   `;
 
@@ -1268,24 +1278,15 @@
   };
 
   let currentAudioUrl = null;
-  let currentWordLang = "en";
+  let currentActiveTab = "en"; // "en", "hi", "bn"
+  let cachedMultiData = null;
 
-  function pronounceWord(word) {
-    if (currentAudioUrl) {
-      const audio = new Audio(currentAudioUrl);
-      audio.play().catch(() => speakWord(word, currentWordLang));
-    } else {
-      speakWord(word, currentWordLang);
-    }
-  }
-
-  function speakWord(word, langCode = "en") {
+  function speakWord(word, langCode = "en-US") {
     if ("speechSynthesis" in window) {
       try {
         window.speechSynthesis.cancel();
         const utter = new SpeechSynthesisUtterance(word);
-        const langConfig = LANG_MAP[langCode] || { bcp47: "en-US" };
-        utter.lang = langConfig.bcp47 || "en-US";
+        utter.lang = langCode || "en-US";
         const voices = window.speechSynthesis.getVoices();
         if (voices && voices.length > 0) {
           const matchedVoice = voices.find((v) =>
@@ -1298,233 +1299,376 @@
     }
   }
 
-  async function fetchWordDetails(word) {
-    let result = {
-      word: word,
-      detectedLang: "en",
-      langName: "English",
-      translation: "",
-      phonetic: "",
-      audioUrl: null,
-      definitions: [],
-      synonyms: []
-    };
+  async function fetchMultiLanguageVocab(rawWord) {
+    const cleanWord = rawWord.trim().replace(/^[\s,.;:!?'"()\[\]]+|[\s,.;:!?'"()\[\]]+$/g, "") || rawWord.trim();
 
-    try {
-      // 1. Google Multi-Language & Translation API
-      const transRes = await fetch(
-        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(word)}`
-      );
-      if (transRes.ok) {
-        const tData = await transRes.json();
-        const detected = tData[2] || "en";
-        result.detectedLang = detected;
-        result.langName = LANG_MAP[detected]?.name || detected.toUpperCase();
+    const [enTrans, hiTrans, bnTrans, enDict] = await Promise.all([
+      // English Translation / detection
+      fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(cleanWord)}`)
+        .then((r) => r.json())
+        .catch(() => null),
+      // Hindi Translation & Dictionary
+      fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=hi&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(cleanWord)}`)
+        .then((r) => r.json())
+        .catch(() => null),
+      // Bengali Translation & Dictionary
+      fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=bn&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(cleanWord)}`)
+        .then((r) => r.json())
+        .catch(() => null),
+      // Oxford English Dictionary
+      fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`)
+        .then((r) => r.json())
+        .catch(() => null)
+    ]);
 
-        if (tData[0] && tData[0][0]) {
-          result.translation = tData[0][0][0] || "";
-        }
-        if (tData[0] && tData[0][1]) {
-          result.phonetic = tData[0][1][3] || "";
-        }
+    // Parse English
+    let enDefs = [];
+    let enSyns = [];
+    let enPhonetic = "";
+    let enAudio = null;
 
-        if (Array.isArray(tData[1])) {
-          tData[1].forEach((item) => {
-            if (item && item[0] && Array.isArray(item[1])) {
-              item[1].slice(0, 3).forEach((meaning) => {
-                result.definitions.push({
-                  partOfSpeech: item[0],
-                  definition: meaning,
-                  example: ""
-                });
-              });
-              result.synonyms.push(...item[1]);
-            }
+    if (Array.isArray(enDict) && enDict.length > 0) {
+      const entry = enDict[0];
+      enPhonetic = entry.phonetic || (entry.phonetics?.find((p) => p.text)?.text) || "";
+      enAudio = entry.phonetics?.find((p) => p.audio)?.audio || null;
+      if (entry.meanings) {
+        entry.meanings.forEach((m) => {
+          const pos = m.partOfSpeech || "";
+          m.definitions?.slice(0, 3).forEach((d) => {
+            enDefs.push({
+              pos: pos,
+              def: d.definition,
+              example: d.example || ""
+            });
           });
-        }
+          if (m.synonyms) enSyns.push(...m.synonyms);
+        });
       }
-    } catch (e) {}
+    }
 
-    // 2. Query Oxford Dictionary API (for English or translation)
-    const lookupTarget = result.detectedLang === "en" ? word : result.translation;
-    if (lookupTarget) {
-      try {
-        const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(lookupTarget)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            const entry = data[0];
-            if (!result.phonetic) {
-              result.phonetic = entry.phonetic || (entry.phonetics?.find((p) => p.text)?.text) || "";
-            }
-            result.audioUrl = entry.phonetics?.find((p) => p.audio)?.audio || null;
+    // If Oxford had no definitions, fallback to Google translate meanings
+    if (enDefs.length === 0 && enTrans) {
+      const gTrans = enTrans[0]?.[0]?.[0] || cleanWord;
+      const gRom = enTrans[0]?.[1]?.[3] || "";
+      if (gRom) enPhonetic = gRom;
 
-            if (entry.meanings) {
-              const oxfordDefs = [];
-              entry.meanings.forEach((m) => {
-                const part = m.partOfSpeech || "";
-                m.definitions?.slice(0, 2).forEach((d) => {
-                  oxfordDefs.push({
-                    partOfSpeech: part,
-                    definition: d.definition,
-                    example: d.example || ""
-                  });
-                });
-                if (m.synonyms) {
-                  result.synonyms.push(...m.synonyms);
-                }
+      if (Array.isArray(enTrans[1])) {
+        enTrans[1].forEach((item) => {
+          if (item && item[0] && Array.isArray(item[1])) {
+            item[1].slice(0, 3).forEach((meaning) => {
+              enDefs.push({
+                pos: item[0],
+                def: meaning,
+                example: ""
               });
-              if (oxfordDefs.length > 0) {
-                result.definitions = oxfordDefs;
-              }
-            }
+            });
+            enSyns.push(...item[1]);
           }
-        }
-      } catch (e) {}
+        });
+      }
+      if (enDefs.length === 0 && gTrans) {
+        enDefs.push({
+          pos: "definition",
+          def: gTrans,
+          example: ""
+        });
+      }
     }
 
-    // 3. Supplement synonyms via Datamuse
-    if (result.synonyms.length < 5 && lookupTarget) {
+    // Supplement synonyms
+    if (enSyns.length < 4) {
       try {
-        const dmRes = await fetch(`https://api.datamuse.com/words?rel_syn=${encodeURIComponent(lookupTarget)}&max=15`);
-        if (dmRes.ok) {
-          const dmData = await dmRes.json();
-          if (Array.isArray(dmData)) {
-            const extraSyns = dmData.map((item) => item.word);
-            result.synonyms = Array.from(new Set([...result.synonyms, ...extraSyns]));
-          }
+        const dm = await fetch(`https://api.datamuse.com/words?rel_syn=${encodeURIComponent(cleanWord)}&max=12`).then((r) => r.json());
+        if (Array.isArray(dm)) {
+          enSyns = Array.from(new Set([...enSyns, ...dm.map((d) => d.word)]));
         }
       } catch (e) {}
     }
 
-    return result;
+    // Parse Hindi
+    let hiWord = hiTrans?.[0]?.[0]?.[0] || "";
+    let hiRom = hiTrans?.[0]?.[1]?.[3] || "";
+    let hiGroups = [];
+    let hiSyns = [];
+    if (Array.isArray(hiTrans?.[1])) {
+      hiTrans[1].forEach((item) => {
+        if (item && item[0] && Array.isArray(item[1])) {
+          hiGroups.push({
+            pos: item[0],
+            words: item[1].slice(0, 6)
+          });
+          hiSyns.push(...item[1]);
+        }
+      });
+    }
+
+    // Parse Bengali
+    let bnWord = bnTrans?.[0]?.[0]?.[0] || "";
+    let bnRom = bnTrans?.[0]?.[1]?.[3] || "";
+    let bnGroups = [];
+    let bnSyns = [];
+    if (Array.isArray(bnTrans?.[1])) {
+      bnTrans[1].forEach((item) => {
+        if (item && item[0] && Array.isArray(item[1])) {
+          bnGroups.push({
+            pos: item[0],
+            words: item[1].slice(0, 6)
+          });
+          bnSyns.push(...item[1]);
+        }
+      });
+    }
+
+    return {
+      word: cleanWord,
+      en: {
+        phonetic: enPhonetic,
+        audio: enAudio,
+        definitions: enDefs,
+        synonyms: enSyns
+      },
+      hi: {
+        word: hiWord,
+        romanization: hiRom,
+        groups: hiGroups,
+        synonyms: hiSyns
+      },
+      bn: {
+        word: bnWord,
+        romanization: bnRom,
+        groups: bnGroups,
+        synonyms: bnSyns
+      }
+    };
   }
 
-  async function showVocabModal(word, x, y) {
-    if (settings.ghostMode) return; // Don't show if in Ghost Mode
-
-    mountHost();
-    selectedWord = word;
-    currentAudioUrl = null;
-    currentWordLang = "en";
+  function renderMultiVocab(data, activeTab = "en") {
+    currentActiveTab = activeTab;
+    cachedMultiData = data;
 
     const wordEl = shadow.querySelector("#fp-card-word");
-    const langBadgeEl = shadow.querySelector("#fp-card-lang");
-    const phoneticEl = shadow.querySelector("#fp-card-phonetic");
-    const contentEl = shadow.querySelector("#fp-card-content");
+    const contentEn = shadow.querySelector("#fp-content-en");
+    const contentHi = shadow.querySelector("#fp-content-hi");
+    const contentBn = shadow.querySelector("#fp-content-bn");
 
-    wordEl.textContent = word;
-    if (langBadgeEl) langBadgeEl.style.display = "none";
-    phoneticEl.textContent = "...";
-    contentEl.innerHTML = `<div style="color:#94a3b8;padding:12px 0;">Searching Oxford definitions & translations...</div>`;
+    wordEl.textContent = data.word;
 
-    const modalWidth = 330;
-    let left = Math.min(Math.max(10, x), window.innerWidth - modalWidth - 20) + window.scrollX;
-    let top = y + window.scrollY;
-
-    vocabCard.style.left = `${left}px`;
-    vocabCard.style.top = `${top}px`;
-    vocabCard.style.display = "block";
-    defineBadge.style.display = "none";
-
-    const data = await fetchWordDetails(word);
-    currentWordLang = data.detectedLang || "en";
-    phoneticEl.textContent = data.phonetic ? `/${data.phonetic}/` : "";
-    currentAudioUrl = data.audioUrl;
-
-    if (langBadgeEl && data.detectedLang !== "en") {
-      langBadgeEl.textContent = data.langName;
-      langBadgeEl.style.display = "inline-block";
-    }
-
-    let html = "";
-
-    // If foreign language, show meaning banner
-    if (data.detectedLang !== "en" && data.translation && data.translation.toLowerCase() !== word.toLowerCase()) {
-      html += `
-        <div class="fp-trans-box">
-          <div style="font-size:10px;color:#94a3b8;margin-bottom:2px;">English Translation</div>
-          <div style="font-size:13px;font-weight:700;color:#60a5fa;">${data.translation}</div>
-        </div>
-      `;
-    }
-
-    if (data.definitions.length > 0) {
-      html += `<div class="fp-section-title"><span>Definitions</span><span style="font-size:10px;color:#94a3b8;">${data.definitions.length} found</span></div>`;
-      data.definitions.slice(0, 3).forEach((d) => {
-        html += `
-          <div class="fp-definition-item">
-            <span class="fp-part-of-speech">${d.partOfSpeech}</span>
-            ${d.definition}
-            ${d.example ? `<div class="fp-example">"${d.example}"</div>` : ""}
+    // 1. Render English Tab
+    let enHtml = "";
+    if (data.en.definitions.length > 0) {
+      data.en.definitions.slice(0, 3).forEach((d) => {
+        enHtml += `
+          <div style="margin-bottom:8px;">
+            ${d.pos ? `<div class="fp-pos-label">${d.pos}</div>` : ""}
+            <div class="fp-def-body">${d.def}</div>
+            ${d.example ? `<div style="font-size:11px;color:#64748b;font-style:italic;margin-top:2px;">"${d.example}"</div>` : ""}
           </div>
         `;
       });
     } else {
-      html += `<div style="color:#94a3b8;margin-bottom:8px;">No direct dictionary definition found.</div>`;
+      enHtml = `<div style="color:#64748b;font-size:12px;">No definition found.</div>`;
     }
 
-    if (data.synonyms.length > 0) {
-      html += `
-        <div class="fp-section-title">
-          <span>Synonyms</span>
-          <span style="font-size:10px;color:#94a3b8;">Click to copy / replace</span>
-        </div>
-        <div class="fp-synonyms-wrap">
-      `;
-      data.synonyms.slice(0, 16).forEach((s) => {
-        html += `<span class="fp-synonym-pill" data-syn="${s}">${s}</span>`;
+    if (data.en.synonyms.length > 0) {
+      enHtml += `<div class="fp-synonyms-section"><div class="fp-syn-label">Synonyms (Click to copy):</div>`;
+      data.en.synonyms.slice(0, 12).forEach((s) => {
+        enHtml += `<span class="fp-synonym-pill" data-word="${s}">${s}</span>`;
       });
-      html += `</div>`;
+      enHtml += `</div>`;
     }
+    contentEn.innerHTML = enHtml;
 
-    contentEl.innerHTML = html;
+    // 2. Render Hindi Tab
+    let hiHtml = "";
+    if (data.hi.word) {
+      hiHtml += `<div class="fp-trans-headline">${data.hi.word}</div>`;
+      if (data.hi.romanization) {
+        hiHtml += `<div class="fp-trans-rom">/${data.hi.romanization}/</div>`;
+      }
+      if (data.hi.groups.length > 0) {
+        data.hi.groups.forEach((g) => {
+          hiHtml += `<div class="fp-dict-group"><b>${g.pos}:</b> ${g.words.join(", ")}</div>`;
+        });
+      }
+    } else {
+      hiHtml = `<div style="color:#64748b;font-size:12px;">No Hindi translation found.</div>`;
+    }
+    if (data.hi.synonyms.length > 0) {
+      hiHtml += `<div class="fp-synonyms-section"><div class="fp-syn-label">Alternatives:</div>`;
+      data.hi.synonyms.slice(0, 10).forEach((s) => {
+        hiHtml += `<span class="fp-synonym-pill" data-word="${s}">${s}</span>`;
+      });
+      hiHtml += `</div>`;
+    }
+    contentHi.innerHTML = hiHtml;
 
-    contentEl.querySelectorAll(".fp-synonym-pill").forEach((pill) => {
-      pill.addEventListener("click", (e) => {
+    // 3. Render Bengali Tab
+    let bnHtml = "";
+    if (data.bn.word) {
+      bnHtml += `<div class="fp-trans-headline">${data.bn.word}</div>`;
+      if (data.bn.romanization) {
+        bnHtml += `<div class="fp-trans-rom">/${data.bn.romanization}/</div>`;
+      }
+      if (data.bn.groups.length > 0) {
+        data.bn.groups.forEach((g) => {
+          bnHtml += `<div class="fp-dict-group"><b>${g.pos}:</b> ${g.words.join(", ")}</div>`;
+        });
+      }
+    } else {
+      bnHtml = `<div style="color:#64748b;font-size:12px;">No Bengali translation found.</div>`;
+    }
+    if (data.bn.synonyms.length > 0) {
+      bnHtml += `<div class="fp-synonyms-section"><div class="fp-syn-label">Alternatives:</div>`;
+      data.bn.synonyms.slice(0, 10).forEach((s) => {
+        bnHtml += `<span class="fp-synonym-pill" data-word="${s}">${s}</span>`;
+      });
+      bnHtml += `</div>`;
+    }
+    contentBn.innerHTML = bnHtml;
+
+    // Add click listeners to synonym chips
+    shadow.querySelectorAll(".fp-synonym-pill").forEach((chip) => {
+      chip.addEventListener("click", (e) => {
         e.stopPropagation();
-        const syn = pill.dataset.syn;
-        navigator.clipboard.writeText(syn);
-        pill.textContent = `✓ Copied!`;
-        pill.style.background = "#10b981";
-        pill.style.borderColor = "#10b981";
-        pill.style.color = "#ffffff";
-
-        if (activeElement && isEditable(activeElement)) {
-          insertSingleCharacter(activeElement, syn);
-        }
-
+        const w = chip.dataset.word;
+        navigator.clipboard.writeText(w);
+        const originalText = chip.textContent;
+        chip.textContent = "✓ Copied";
+        chip.style.background = "#10b981";
+        chip.style.color = "#ffffff";
         setTimeout(() => {
-          pill.textContent = syn;
-          pill.style.background = "#1e293b";
-          pill.style.borderColor = "#3b82f6";
-          pill.style.color = "#93c5fd";
+          chip.textContent = originalText;
+          chip.style.removeProperty("background");
+          chip.style.removeProperty("color");
         }, 1200);
       });
     });
+
+    // Switch to active tab view
+    switchVocabTab(activeTab);
   }
 
+  function switchVocabTab(tab) {
+    currentActiveTab = tab;
+    const tabEn = shadow.querySelector("#fp-tab-en");
+    const tabHi = shadow.querySelector("#fp-tab-hi");
+    const tabBn = shadow.querySelector("#fp-tab-bn");
+
+    const paneEn = shadow.querySelector("#fp-pane-en");
+    const paneHi = shadow.querySelector("#fp-pane-hi");
+    const paneBn = shadow.querySelector("#fp-pane-bn");
+
+    const langBadgeEl = shadow.querySelector("#fp-card-lang");
+
+    [tabEn, tabHi, tabBn].forEach((t) => t?.classList.remove("active"));
+    [paneEn, paneHi, paneBn].forEach((p) => p?.classList.remove("active"));
+
+    if (tab === "en") {
+      tabEn?.classList.add("active");
+      paneEn?.classList.add("active");
+      if (langBadgeEl) langBadgeEl.textContent = "EN";
+    } else if (tab === "hi") {
+      tabHi?.classList.add("active");
+      paneHi?.classList.add("active");
+      if (langBadgeEl) langBadgeEl.textContent = "HI";
+    } else if (tab === "bn") {
+      tabBn?.classList.add("active");
+      paneBn?.classList.add("active");
+      if (langBadgeEl) langBadgeEl.textContent = "BN";
+    }
+  }
+
+  // Audio Speaker
   shadow.querySelector("#fp-card-speaker").addEventListener("click", (e) => {
     e.stopPropagation();
-    if (selectedWord) pronounceWord(selectedWord);
+    if (!cachedMultiData) return;
+
+    if (currentActiveTab === "en") {
+      if (cachedMultiData.en.audio) {
+        new Audio(cachedMultiData.en.audio).play().catch(() => speakWord(cachedMultiData.word, "en-US"));
+      } else {
+        speakWord(cachedMultiData.word, "en-US");
+      }
+    } else if (currentActiveTab === "hi") {
+      const textToSpeak = cachedMultiData.hi.word || cachedMultiData.word;
+      speakWord(textToSpeak, "hi-IN");
+    } else if (currentActiveTab === "bn") {
+      const textToSpeak = cachedMultiData.bn.word || cachedMultiData.word;
+      speakWord(textToSpeak, "bn-IN");
+    }
   });
 
+  // Tab buttons
+  shadow.querySelector("#fp-tab-en").addEventListener("click", (e) => {
+    e.stopPropagation();
+    switchVocabTab("en");
+  });
+  shadow.querySelector("#fp-tab-hi").addEventListener("click", (e) => {
+    e.stopPropagation();
+    switchVocabTab("hi");
+  });
+  shadow.querySelector("#fp-tab-bn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    switchVocabTab("bn");
+  });
+
+  // Close button
   shadow.querySelector("#fp-card-close").addEventListener("click", (e) => {
     e.stopPropagation();
     vocabCard.style.display = "none";
+    defineBadge.style.display = "none";
   });
 
-  const seeAllBtn = shadow.querySelector("#fp-card-see-all");
-  if (seeAllBtn) {
-    seeAllBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      vocabCard.style.display = "none";
-      try {
-        chrome.runtime.sendMessage({ type: "OPEN_VOCABULARY", word: selectedWord });
-      } catch (err) {}
-    });
+  async function showVocabModal(word, badgeEl) {
+    if (settings.ghostMode) return;
+    mountHost();
+
+    // Capture badge position then immediately hide define badge to avoid overlap
+    let badgeRect = badgeEl && badgeEl.getBoundingClientRect ? badgeEl.getBoundingClientRect() : null;
+    defineBadge.style.display = "none";
+
+    const cleanWord = word.trim().replace(/^[\s,.;:!?'"()\[\]]+|[\s,.;:!?'"()\[\]]+$/g, "") || word.trim();
+    selectedWord = cleanWord;
+
+    const wordEl = shadow.querySelector("#fp-card-word");
+    const langBadgeEl = shadow.querySelector("#fp-card-lang");
+    wordEl.textContent = cleanWord;
+    if (langBadgeEl) langBadgeEl.textContent = "EN";
+
+    // Set initial loading states
+    shadow.querySelector("#fp-content-en").innerHTML = `<div style="color:#64748b;font-size:12px;padding:8px 0;">Looking up English definition...</div>`;
+    shadow.querySelector("#fp-content-hi").innerHTML = `<div style="color:#64748b;font-size:12px;padding:8px 0;">Looking up Hindi meaning...</div>`;
+    shadow.querySelector("#fp-content-bn").innerHTML = `<div style="color:#64748b;font-size:12px;padding:8px 0;">Looking up Bengali meaning...</div>`;
+
+    switchVocabTab("en");
+
+    // Position card directly where badge was, with viewport awareness
+    let modalWidth = 320;
+    let modalHeight = 300;
+    let left = badgeRect ? badgeRect.left + window.scrollX - 10 : window.innerWidth / 2 - 160;
+    let top = badgeRect ? badgeRect.top + window.scrollY : 120 + window.scrollY;
+
+    // If card overflows viewport at bottom, position it above selection
+    if (badgeRect && (badgeRect.bottom + modalHeight > window.innerHeight) && (badgeRect.top - modalHeight > 10)) {
+      top = badgeRect.top - modalHeight - 10 + window.scrollY;
+    }
+
+    if (left + modalWidth > window.innerWidth - 10 + window.scrollX) {
+      left = window.innerWidth - modalWidth - 10 + window.scrollX;
+    }
+    if (left < 10 + window.scrollX) {
+      left = 10 + window.scrollX;
+    }
+
+    vocabCard.style.left = `${left}px`;
+    vocabCard.style.top = `${top}px`;
+    vocabCard.style.display = "block";
+
+    const data = await fetchMultiLanguageVocab(cleanWord);
+    renderMultiVocab(data, "en");
   }
 
+  // Highlight Text Trigger: Show ONLY the "Define" Badge until clicked!
   document.addEventListener("mouseup", (e) => {
     if (!settings.vocabHelper || settings.ghostMode) return;
     if (host.contains(e.target)) return;
@@ -1546,10 +1690,11 @@
               defineBadge.style.left = `${Math.max(10, x)}px`;
               defineBadge.style.top = `${y}px`;
               defineBadge.style.display = "flex";
+              vocabCard.style.display = "none"; // DO NOT show modal until Define is clicked!
 
               defineBadge.onclick = (evt) => {
                 evt.stopPropagation();
-                showVocabModal(text, rect.left, rect.bottom + 10);
+                showVocabModal(text, defineBadge);
               };
               return;
             }

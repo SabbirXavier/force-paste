@@ -96,10 +96,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnVocabSearch = document.getElementById("btn-vocab-search");
   const vocabResultBox = document.getElementById("vocab-result-box");
   const vocabWordDisplay = document.getElementById("vocab-word-display");
-  const vocabPhoneticDisplay = document.getElementById("vocab-phonetic-display");
+  const btnVocabSpeak = document.getElementById("btn-vocab-speak");
+  const popupVocabLangBadge = document.getElementById("popup-vocab-lang-badge");
+  const popupTabEn = document.getElementById("popup-tab-en");
+  const popupTabHi = document.getElementById("popup-tab-hi");
+  const popupTabBn = document.getElementById("popup-tab-bn");
+  const popupPaneEn = document.getElementById("popup-pane-en");
+  const popupPaneHi = document.getElementById("popup-pane-hi");
+  const popupPaneBn = document.getElementById("popup-pane-bn");
   const vocabDefinitionsDisplay = document.getElementById("vocab-definitions-display");
   const vocabSynonymsDisplay = document.getElementById("vocab-synonyms-display");
-  const btnVocabSpeak = document.getElementById("btn-vocab-speak");
+  const popupHiDisplay = document.getElementById("popup-hi-display");
+  const popupBnDisplay = document.getElementById("popup-bn-display");
 
   // Load Settings from Storage
   const settings = await chrome.storage.local.get([
@@ -296,144 +304,247 @@ document.addEventListener("DOMContentLoaded", async () => {
     tr: { name: "Turkish", bcp47: "tr-TR" }
   };
 
-  let currentPopupAudioUrl = null;
-  let currentPopupLangCode = "en";
+  let currentPopupTab = "en";
+  let currentPopupData = null;
 
-  async function lookupWordInPopup(word) {
-    if (!word) return;
+  function switchPopupVocabTab(tab) {
+    currentPopupTab = tab;
+    [popupTabEn, popupTabHi, popupTabBn].forEach((t) => {
+      if (t) {
+        t.style.background = "transparent";
+        t.style.color = "#94a3b8";
+        t.classList.remove("active");
+      }
+    });
+    [popupPaneEn, popupPaneHi, popupPaneBn].forEach((p) => {
+      if (p) {
+        p.style.display = "none";
+        p.classList.remove("active");
+      }
+    });
+
+    if (tab === "en") {
+      if (popupTabEn) {
+        popupTabEn.style.background = "#ffffff";
+        popupTabEn.style.color = "#dc2626";
+        popupTabEn.classList.add("active");
+      }
+      if (popupPaneEn) {
+        popupPaneEn.style.display = "block";
+        popupPaneEn.classList.add("active");
+      }
+      if (popupVocabLangBadge) popupVocabLangBadge.textContent = "EN";
+    } else if (tab === "hi") {
+      if (popupTabHi) {
+        popupTabHi.style.background = "#ffffff";
+        popupTabHi.style.color = "#dc2626";
+        popupTabHi.classList.add("active");
+      }
+      if (popupPaneHi) {
+        popupPaneHi.style.display = "block";
+        popupPaneHi.classList.add("active");
+      }
+      if (popupVocabLangBadge) popupVocabLangBadge.textContent = "HI";
+    } else if (tab === "bn") {
+      if (popupTabBn) {
+        popupTabBn.style.background = "#ffffff";
+        popupTabBn.style.color = "#dc2626";
+        popupTabBn.classList.add("active");
+      }
+      if (popupPaneBn) {
+        popupPaneBn.style.display = "block";
+        popupPaneBn.classList.add("active");
+      }
+      if (popupVocabLangBadge) popupVocabLangBadge.textContent = "BN";
+    }
+  }
+
+  popupTabEn?.addEventListener("click", () => switchPopupVocabTab("en"));
+  popupTabHi?.addEventListener("click", () => switchPopupVocabTab("hi"));
+  popupTabBn?.addEventListener("click", () => switchPopupVocabTab("bn"));
+
+  async function lookupWordInPopup(rawWord) {
+    if (!rawWord) return;
+    const cleanWord = rawWord.trim().replace(/^[\s,.;:!?'"()\[\]]+|[\s,.;:!?'"()\[\]]+$/g, "") || rawWord.trim();
+    if (!cleanWord) return;
+
     vocabResultBox.style.display = "block";
-    vocabWordDisplay.textContent = word;
-    vocabPhoneticDisplay.textContent = "...";
-    vocabDefinitionsDisplay.innerHTML = `<div style="color:#94a3b8;">Searching global definitions & synonyms...</div>`;
+    vocabWordDisplay.textContent = cleanWord;
+    switchPopupVocabTab("en");
+
+    vocabDefinitionsDisplay.innerHTML = `<div style="color:#94a3b8;padding:6px 0;">Looking up English definition...</div>`;
     vocabSynonymsDisplay.innerHTML = "";
-    currentPopupAudioUrl = null;
-    currentPopupLangCode = "en";
+    if (popupHiDisplay) popupHiDisplay.innerHTML = `<div style="color:#94a3b8;padding:6px 0;">Looking up Hindi meaning...</div>`;
+    if (popupBnDisplay) popupBnDisplay.innerHTML = `<div style="color:#94a3b8;padding:6px 0;">Looking up Bengali meaning...</div>`;
 
     try {
-      // 1. Query Universal Multi-Language Engine (Google Translate API)
-      const transRes = await fetch(
-        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(word)}`
-      );
-      let detectedLang = "en";
-      let translation = "";
-      let romanization = "";
-      let dictMeanings = [];
+      const [enRes, dictRes, hiRes, bnRes] = await Promise.allSettled([
+        fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(cleanWord)}`).then((r) => r.json()).catch(() => null),
+        fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`).then((r) => r.json()).catch(() => null),
+        fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=hi&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(cleanWord)}`).then((r) => r.json()).catch(() => null),
+        fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=bn&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(cleanWord)}`).then((r) => r.json()).catch(() => null)
+      ]);
 
-      if (transRes.ok) {
-        const tData = await transRes.json();
-        detectedLang = tData[2] || "en";
-        currentPopupLangCode = detectedLang;
+      const enTrans = enRes.status === "fulfilled" ? enRes.value : null;
+      const oxfordData = dictRes.status === "fulfilled" && Array.isArray(dictRes.value) ? dictRes.value[0] : null;
+      const hiTrans = hiRes.status === "fulfilled" ? hiRes.value : null;
+      const bnTrans = bnRes.status === "fulfilled" ? bnRes.value : null;
 
-        if (tData[0] && tData[0][0]) {
-          translation = tData[0][0][0] || "";
-        }
-        if (tData[0] && tData[0][1]) {
-          romanization = tData[0][1][3] || "";
-        }
+      // Parse English
+      let enDefs = [];
+      let enSyns = [];
+      let enAudio = null;
 
-        if (Array.isArray(tData[1])) {
-          tData[1].forEach((item) => {
-            if (item && item[0] && Array.isArray(item[1])) {
-              dictMeanings.push({
-                partOfSpeech: item[0],
-                words: item[1].slice(0, 4)
-              });
-            }
+      if (oxfordData) {
+        enAudio = oxfordData.phonetics?.find((p) => p.audio)?.audio || null;
+        if (Array.isArray(oxfordData.meanings)) {
+          oxfordData.meanings.slice(0, 3).forEach((m) => {
+            const pos = m.partOfSpeech || "";
+            m.definitions?.slice(0, 2).forEach((d) => {
+              enDefs.push({ pos, def: d.definition, example: d.example || "" });
+            });
+            if (Array.isArray(m.synonyms)) enSyns.push(...m.synonyms);
           });
         }
       }
 
-      const langInfo = LANG_MAP[detectedLang] || { name: detectedLang.toUpperCase(), bcp47: detectedLang };
-      vocabPhoneticDisplay.textContent = romanization ? `/${romanization}/` : "";
-
-      let defsHtml = "";
-      let synsList = [];
-
-      // If foreign language, display Language Badge & English Meaning
-      if (detectedLang !== "en" && translation && translation.toLowerCase() !== word.toLowerCase()) {
-        defsHtml += `
-          <div style="margin-bottom:8px;padding:6px 10px;background:#1e293b;border-radius:6px;border-left:3px solid #3b82f6;">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
-              <span style="background:#3b82f6;color:#ffffff;font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:4px;">${langInfo.name}</span>
-              <span style="font-size:11px;color:#94a3b8;">English Translation:</span>
-            </div>
-            <div style="font-size:13px;font-weight:700;color:#60a5fa;">${translation}</div>
-          </div>
-        `;
+      if (enDefs.length === 0 && enTrans) {
+        const gTrans = enTrans[0]?.[0]?.[0] || cleanWord;
+        if (Array.isArray(enTrans[1])) {
+          enTrans[1].forEach((item) => {
+            if (item && item[0] && Array.isArray(item[1])) {
+              item[1].slice(0, 3).forEach((meaning) => {
+                enDefs.push({ pos: item[0], def: meaning, example: "" });
+              });
+              enSyns.push(...item[1]);
+            }
+          });
+        }
+        if (enDefs.length === 0 && gTrans) {
+          enDefs.push({ pos: "definition", def: gTrans, example: "" });
+        }
       }
 
-      // 2. Query Oxford Dictionary API (for English or translation)
-      const lookupTarget = detectedLang === "en" ? word : translation;
-      if (lookupTarget) {
+      if (enSyns.length < 4) {
         try {
-          const dictRes = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(lookupTarget)}`);
-          if (dictRes.ok) {
-            const data = await dictRes.json();
-            if (Array.isArray(data) && data.length > 0) {
-              const entry = data[0];
-              if (!romanization) {
-                vocabPhoneticDisplay.textContent = entry.phonetic || (entry.phonetics?.find((p) => p.text)?.text) || "";
-              }
-              currentPopupAudioUrl = entry.phonetics?.find((p) => p.audio)?.audio || null;
-
-              if (entry.meanings) {
-                entry.meanings.slice(0, 3).forEach((m) => {
-                  const part = m.partOfSpeech || "";
-                  m.definitions?.slice(0, 2).forEach((d) => {
-                    defsHtml += `<div style="margin-bottom:6px;"><b style="color:#a5b4fc;text-transform:uppercase;font-size:10px;">[${part}]</b> ${d.definition}</div>`;
-                  });
-                  if (m.synonyms) synsList.push(...m.synonyms);
-                });
-              }
-            }
-          }
+          const dm = await fetch(`https://api.datamuse.com/words?rel_syn=${encodeURIComponent(cleanWord)}&max=12`).then((r) => r.json());
+          if (Array.isArray(dm)) enSyns = Array.from(new Set([...enSyns, ...dm.map((d) => d.word)]));
         } catch (e) {}
       }
 
-      // If Oxford didn't yield definitions, use Google Dictionary meanings
-      if (dictMeanings.length > 0 && !defsHtml.includes("<b>[")) {
-        dictMeanings.forEach((dm) => {
-          defsHtml += `<div style="margin-bottom:6px;"><b style="color:#a5b4fc;text-transform:uppercase;font-size:10px;">[${dm.partOfSpeech}]</b> ${dm.words.join(", ")}</div>`;
-          synsList.push(...dm.words);
+      // Parse Hindi
+      let hiWord = hiTrans?.[0]?.[0]?.[0] || "";
+      let hiRom = hiTrans?.[0]?.[1]?.[3] || "";
+      let hiGroups = [];
+      let hiSyns = [];
+      if (Array.isArray(hiTrans?.[1])) {
+        hiTrans[1].forEach((item) => {
+          if (item && item[0] && Array.isArray(item[1])) {
+            hiGroups.push({ pos: item[0], words: item[1].slice(0, 6) });
+            hiSyns.push(...item[1]);
+          }
         });
       }
 
-      // 3. Supplement Synonyms via Datamuse
-      if (synsList.length < 5 && lookupTarget) {
-        try {
-          const dmRes = await fetch(`https://api.datamuse.com/words?rel_syn=${encodeURIComponent(lookupTarget)}&max=15`);
-          if (dmRes.ok) {
-            const dmData = await dmRes.json();
-            if (Array.isArray(dmData)) {
-              synsList = Array.from(new Set([...synsList, ...dmData.map((d) => d.word)]));
-            }
+      // Parse Bengali
+      let bnWord = bnTrans?.[0]?.[0]?.[0] || "";
+      let bnRom = bnTrans?.[0]?.[1]?.[3] || "";
+      let bnGroups = [];
+      let bnSyns = [];
+      if (Array.isArray(bnTrans?.[1])) {
+        bnTrans[1].forEach((item) => {
+          if (item && item[0] && Array.isArray(item[1])) {
+            bnGroups.push({ pos: item[0], words: item[1].slice(0, 6) });
+            bnSyns.push(...item[1]);
           }
-        } catch (e) {}
+        });
       }
 
-      vocabDefinitionsDisplay.innerHTML = defsHtml || `<span style="color:#94a3b8;">No direct dictionary entry found.</span>`;
+      currentPopupData = {
+        word: cleanWord,
+        en: { audio: enAudio, definitions: enDefs, synonyms: enSyns },
+        hi: { word: hiWord, romanization: hiRom, groups: hiGroups, synonyms: hiSyns },
+        bn: { word: bnWord, romanization: bnRom, groups: bnGroups, synonyms: bnSyns }
+      };
 
-      if (synsList.length > 0) {
-        vocabSynonymsDisplay.innerHTML = synsList
-          .slice(0, 16)
+      // Render English Tab
+      let defsHtml = "";
+      if (enDefs.length > 0) {
+        enDefs.slice(0, 3).forEach((d) => {
+          defsHtml += `
+            <div style="margin-bottom:6px;">
+              ${d.pos ? `<b style="color:#a5b4fc;text-transform:uppercase;font-size:10px;">[${d.pos}]</b> ` : ""}
+              <span>${d.def}</span>
+              ${d.example ? `<div style="font-size:11px;color:#94a3b8;font-style:italic;margin-top:2px;">"${d.example}"</div>` : ""}
+            </div>
+          `;
+        });
+      } else {
+        defsHtml = `<div style="color:#94a3b8;font-size:12px;">No definition found.</div>`;
+      }
+      vocabDefinitionsDisplay.innerHTML = defsHtml;
+
+      if (enSyns.length > 0) {
+        vocabSynonymsDisplay.innerHTML = enSyns
+          .slice(0, 14)
           .map((s) => `<span class="syn-chip" data-word="${s}">${s}</span>`)
           .join(" ");
-
-        vocabSynonymsDisplay.querySelectorAll(".syn-chip").forEach((chip) => {
-          chip.addEventListener("click", () => {
-            const w = chip.dataset.word;
-            navigator.clipboard.writeText(w);
-            chip.textContent = "Copied!";
-            chip.style.background = "#10b981";
-            setTimeout(() => {
-              chip.textContent = w;
-              chip.style.background = "#1e293b";
-            }, 1000);
-          });
-        });
       } else {
         vocabSynonymsDisplay.innerHTML = `<span style="color:#94a3b8;font-size:11px;">No synonyms available.</span>`;
       }
+
+      // Render Hindi Tab
+      let hiHtml = "";
+      if (hiWord) {
+        hiHtml += `<div style="font-size:15px;font-weight:700;color:#60a5fa;margin-bottom:3px;">${hiWord}</div>`;
+        if (hiRom) hiHtml += `<div style="font-size:11px;color:#94a3b8;margin-bottom:6px;font-style:italic;">/${hiRom}/</div>`;
+        if (hiGroups.length > 0) {
+          hiGroups.forEach((g) => {
+            hiHtml += `<div style="font-size:11.5px;margin-bottom:4px;color:#cbd5e1;"><b style="color:#ffffff;">${g.pos}:</b> ${g.words.join(", ")}</div>`;
+          });
+        }
+      } else {
+        hiHtml = `<div style="color:#94a3b8;font-size:12px;">No Hindi translation found.</div>`;
+      }
+      if (hiSyns.length > 0) {
+        hiHtml += `<div style="font-size:11px;font-weight:700;color:#60a5fa;margin:8px 0 4px 0;">Alternatives (Click to copy):</div>`;
+        hiHtml += hiSyns.slice(0, 10).map((s) => `<span class="syn-chip" data-word="${s}">${s}</span>`).join(" ");
+      }
+      if (popupHiDisplay) popupHiDisplay.innerHTML = hiHtml;
+
+      // Render Bengali Tab
+      let bnHtml = "";
+      if (bnWord) {
+        bnHtml += `<div style="font-size:15px;font-weight:700;color:#60a5fa;margin-bottom:3px;">${bnWord}</div>`;
+        if (bnRom) bnHtml += `<div style="font-size:11px;color:#94a3b8;margin-bottom:6px;font-style:italic;">/${bnRom}/</div>`;
+        if (bnGroups.length > 0) {
+          bnGroups.forEach((g) => {
+            bnHtml += `<div style="font-size:11.5px;margin-bottom:4px;color:#cbd5e1;"><b style="color:#ffffff;">${g.pos}:</b> ${g.words.join(", ")}</div>`;
+          });
+        }
+      } else {
+        bnHtml = `<div style="color:#94a3b8;font-size:12px;">No Bengali translation found.</div>`;
+      }
+      if (bnSyns.length > 0) {
+        bnHtml += `<div style="font-size:11px;font-weight:700;color:#60a5fa;margin:8px 0 4px 0;">Alternatives (Click to copy):</div>`;
+        bnHtml += bnSyns.slice(0, 10).map((s) => `<span class="syn-chip" data-word="${s}">${s}</span>`).join(" ");
+      }
+      if (popupBnDisplay) popupBnDisplay.innerHTML = bnHtml;
+
+      // Click to copy chips across all panes
+      vocabResultBox.querySelectorAll(".syn-chip").forEach((chip) => {
+        chip.addEventListener("click", () => {
+          const w = chip.dataset.word;
+          navigator.clipboard.writeText(w);
+          const orig = chip.textContent;
+          chip.textContent = "✓ Copied";
+          chip.style.background = "#10b981";
+          setTimeout(() => {
+            chip.textContent = orig;
+            chip.style.removeProperty("background");
+          }, 1000);
+        });
+      });
     } catch (e) {
       vocabDefinitionsDisplay.innerHTML = `<span style="color:#f87171;">Vocabulary lookup encountered an error.</span>`;
     }
@@ -450,12 +561,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   btnVocabSpeak.addEventListener("click", () => {
-    const word = vocabWordDisplay.textContent;
-    if (!word) return;
-    if (currentPopupAudioUrl) {
-      new Audio(currentPopupAudioUrl).play().catch(() => speakWordFallback(word, currentPopupLangCode));
-    } else {
-      speakWordFallback(word, currentPopupLangCode);
+    if (!currentPopupData) return;
+    if (currentPopupTab === "en") {
+      if (currentPopupData.en.audio) {
+        new Audio(currentPopupData.en.audio).play().catch(() => speakWordFallback(currentPopupData.word, "en"));
+      } else {
+        speakWordFallback(currentPopupData.word, "en");
+      }
+    } else if (currentPopupTab === "hi") {
+      const text = currentPopupData.hi.word || currentPopupData.word;
+      speakWordFallback(text, "hi");
+    } else if (currentPopupTab === "bn") {
+      const text = currentPopupData.bn.word || currentPopupData.word;
+      speakWordFallback(text, "bn");
     }
   });
 
@@ -464,12 +582,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       try {
         window.speechSynthesis.cancel();
         const utter = new SpeechSynthesisUtterance(word);
-        const langConfig = LANG_MAP[langCode] || { bcp47: "en-US" };
-        utter.lang = langConfig.bcp47 || "en-US";
+        const bcpMap = { en: "en-US", hi: "hi-IN", bn: "bn-IN" };
+        utter.lang = bcpMap[langCode] || "en-US";
         const voices = window.speechSynthesis.getVoices();
         if (voices && voices.length > 0) {
           const matchedVoice = voices.find((v) =>
-            v.lang.toLowerCase().startsWith((langCode || "en").toLowerCase().slice(0, 2))
+            v.lang.toLowerCase().startsWith(langCode.toLowerCase())
           );
           if (matchedVoice) utter.voice = matchedVoice;
         }
