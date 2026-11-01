@@ -36,10 +36,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Query Current Tab early
   let activeTabId = null;
   let activeTabUrl = "";
+  let currentWindowId = null;
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     activeTabId = tab?.id || null;
     activeTabUrl = tab?.url || "";
+    currentWindowId = tab?.windowId || null;
   } catch (e) {}
 
   // Safe messaging helper to prevent "Receiving end does not exist" crashes
@@ -194,8 +196,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!tabListContainer) return;
 
     try {
-      // 1. Query all open tabs in current window
-      const openTabs = await chrome.tabs.query({ currentWindow: true });
+      // 1. Query all open tabs across all separated windows of current profile
+      const openTabs = await chrome.tabs.query({});
       let activeIds = await getActiveTabsAlwaysActive();
 
       // 2. Clean up any closed / non-existent tabs from storage automatically
@@ -205,6 +207,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         activeIds = cleanedIds;
         await saveActiveTabsAlwaysActive(activeIds);
       }
+
+      // Group tabs by windowId
+      const windowMap = new Map();
+      openTabs.forEach((tab) => {
+        const wId = tab.windowId || 0;
+        if (!windowMap.has(wId)) {
+          windowMap.set(wId, []);
+        }
+        windowMap.get(wId).push(tab);
+      });
+
+      const totalWindows = windowMap.size;
+      const totalTabs = openTabs.length;
 
       // 3. Update summary badges & counts
       const count = activeIds.length;
@@ -219,7 +234,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       if (tabDrawerTotalCount) {
-        tabDrawerTotalCount.textContent = `(${openTabs.length})`;
+        if (totalWindows > 1) {
+          tabDrawerTotalCount.textContent = `(${totalTabs} in ${totalWindows} windows)`;
+        } else {
+          tabDrawerTotalCount.textContent = `(${totalTabs})`;
+        }
       }
 
       // 4. Update Current Tab Quick Switch in Header
@@ -227,111 +246,146 @@ document.addEventListener("DOMContentLoaded", async () => {
         toggleAlwaysActiveCurrent.checked = activeTabId ? activeIds.includes(activeTabId) : false;
       }
 
-      // 5. Sort tabs: active current tab first, then the rest by index
-      const sortedTabs = [...openTabs].sort((a, b) => {
-        if (a.id === activeTabId) return -1;
-        if (b.id === activeTabId) return 1;
-        return a.index - b.index;
-      });
-
-      // 6. Build Tab Rows HTML
+      // 5. Build Tab Rows HTML
       tabListContainer.innerHTML = "";
 
-      if (sortedTabs.length === 0) {
+      if (openTabs.length === 0) {
         tabListContainer.innerHTML = `<div style="color:#94a3b8;font-size:11px;text-align:center;padding:12px;">No open tabs detected</div>`;
         return;
       }
 
-      sortedTabs.forEach((tab) => {
-        const isCurrent = tab.id === activeTabId;
-        const isTabActive = activeIds.includes(tab.id);
+      // Order windows: currentWindowId first, then remaining windows
+      const windowEntries = Array.from(windowMap.entries()).sort(([wA], [wB]) => {
+        if (wA === currentWindowId) return -1;
+        if (wB === currentWindowId) return 1;
+        return wA - wB;
+      });
 
-        let domain = "";
-        try {
-          if (tab.url) {
-            const parsed = new URL(tab.url);
-            domain = parsed.hostname || parsed.protocol;
-          }
-        } catch (e) {
-          domain = "system page";
+      let windowIndex = 1;
+      for (const [wId, tabsInWindow] of windowEntries) {
+        const isCurrentWin = (wId === currentWindowId);
+        const winTitle = isCurrentWin
+          ? `Current Window (${tabsInWindow.length} tabs)`
+          : `Window ${windowIndex + 1} (${tabsInWindow.length} tabs)`;
+        if (!isCurrentWin) windowIndex++;
+
+        // Add window section header when multiple windows are open
+        if (totalWindows > 1) {
+          const winHeader = document.createElement("div");
+          winHeader.className = "tab-window-group-header";
+          winHeader.innerHTML = `<span>🪟 ${winTitle}</span><span style="font-size:8.5px;color:#94a3b8;font-weight:500;">${isCurrentWin ? "This window" : "Separated window"}</span>`;
+          tabListContainer.appendChild(winHeader);
         }
 
-        const titleText = tab.title || domain || "Untitled Tab";
-        const faviconSrc = tab.favIconUrl || "icons/icon-16.png";
-
-        const row = document.createElement("div");
-        row.className = `tab-item-row${isTabActive ? " is-active" : ""}${isCurrent ? " is-current" : ""}`;
-
-        const safeTitle = titleText.replace(/"/g, "&quot;");
-        const safeUrl = (tab.url || "").replace(/"/g, "&quot;");
-
-        row.innerHTML = `
-          <img class="tab-item-favicon" src="${faviconSrc}" onerror="this.src='icons/icon-16.png'">
-          <div class="tab-item-info">
-            <div class="tab-item-title-row">
-              <span class="tab-item-title" title="${safeTitle}">${safeTitle}</span>
-              ${isCurrent ? `<span class="tab-badge-current">This Tab</span>` : ""}
-            </div>
-            <div class="tab-item-url" title="${safeUrl}">${domain}</div>
-          </div>
-          <label class="switch-sm" title="Toggle Always Active for this tab" onclick="event.stopPropagation()">
-            <input type="checkbox" class="tab-item-toggle" data-tab-id="${tab.id}" ${isTabActive ? "checked" : ""}>
-            <span class="slider-sm"></span>
-          </label>
-        `;
-
-        // Switch toggle listener for this tab
-        const switchInput = row.querySelector(".tab-item-toggle");
-        switchInput.addEventListener("change", async (e) => {
-          e.stopPropagation();
-          const isChecked = switchInput.checked;
-          let currentIds = await getActiveTabsAlwaysActive();
-
-          if (isChecked) {
-            if (!currentIds.includes(tab.id)) currentIds.push(tab.id);
-          } else {
-            currentIds = currentIds.filter((id) => id !== tab.id);
-          }
-
-          await saveActiveTabsAlwaysActive(currentIds);
-
-          // Notify the specific tab content script
-          try {
-            await chrome.tabs.sendMessage(tab.id, {
-              type: "SET_TAB_ALWAYS_ACTIVE",
-              enabled: isChecked
-            });
-          } catch (err) {}
-
-          // Update row styling and counters
-          if (isChecked) {
-            row.classList.add("is-active");
-          } else {
-            row.classList.remove("is-active");
-          }
-
-          if (isCurrent && toggleAlwaysActiveCurrent) {
-            toggleAlwaysActiveCurrent.checked = isChecked;
-          }
-
-          const newCount = currentIds.length;
-          if (alwaysActiveCountBadge) {
-            if (newCount === 0) {
-              alwaysActiveCountBadge.textContent = "Off";
-              alwaysActiveCountBadge.classList.remove("active");
-            } else {
-              alwaysActiveCountBadge.textContent = `${newCount} Active`;
-              alwaysActiveCountBadge.classList.add("active");
-            }
-          }
-
-          if (isCurrent) {
-            setTimeout(refreshRestrictions, 150);
-          }
+        // Sort tabs in this window: active current tab first, then the rest by index
+        const sortedWindowTabs = [...tabsInWindow].sort((a, b) => {
+          if (a.id === activeTabId) return -1;
+          if (b.id === activeTabId) return 1;
+          return a.index - b.index;
         });
 
-        tabListContainer.appendChild(row);
-      });
+        sortedWindowTabs.forEach((tab) => {
+          const isCurrent = tab.id === activeTabId;
+          const isTabActive = activeIds.includes(tab.id);
+
+          let domain = "";
+          try {
+            if (tab.url) {
+              const parsed = new URL(tab.url);
+              domain = parsed.hostname || parsed.protocol;
+            }
+          } catch (e) {
+            domain = "system page";
+          }
+
+          const titleText = tab.title || domain || "Untitled Tab";
+          const faviconSrc = tab.favIconUrl || "icons/icon-16.png";
+
+          const row = document.createElement("div");
+          row.className = `tab-item-row${isTabActive ? " is-active" : ""}${isCurrent ? " is-current" : ""}`;
+          row.title = "Click to focus this tab / window";
+
+          const safeTitle = titleText.replace(/"/g, "&quot;");
+          const safeUrl = (tab.url || "").replace(/"/g, "&quot;");
+
+          row.innerHTML = `
+            <img class="tab-item-favicon" src="${faviconSrc}" onerror="this.src='icons/icon-16.png'">
+            <div class="tab-item-info">
+              <div class="tab-item-title-row">
+                <span class="tab-item-title" title="${safeTitle}">${safeTitle}</span>
+                ${isCurrent ? `<span class="tab-badge-current">This Tab</span>` : (tab.active && totalWindows > 1 ? `<span class="tab-badge-win-active">Active</span>` : "")}
+              </div>
+              <div class="tab-item-url" title="${safeUrl}">${domain}</div>
+            </div>
+            <label class="switch-sm" title="Toggle Always Active for this tab" onclick="event.stopPropagation()">
+              <input type="checkbox" class="tab-item-toggle" data-tab-id="${tab.id}" ${isTabActive ? "checked" : ""}>
+              <span class="slider-sm"></span>
+            </label>
+          `;
+
+          // Click on row (outside switch) brings window and tab to focus
+          row.addEventListener("click", async () => {
+            try {
+              if (tab.windowId) {
+                await chrome.windows.update(tab.windowId, { focused: true });
+              }
+              await chrome.tabs.update(tab.id, { active: true });
+            } catch (err) {}
+          });
+
+          // Switch toggle listener for this tab
+          const switchInput = row.querySelector(".tab-item-toggle");
+          switchInput.addEventListener("change", async (e) => {
+            e.stopPropagation();
+            const isChecked = switchInput.checked;
+            let currentIds = await getActiveTabsAlwaysActive();
+
+            if (isChecked) {
+              if (!currentIds.includes(tab.id)) currentIds.push(tab.id);
+            } else {
+              currentIds = currentIds.filter((id) => id !== tab.id);
+            }
+
+            await saveActiveTabsAlwaysActive(currentIds);
+
+            // Notify the specific tab content script
+            try {
+              await chrome.tabs.sendMessage(tab.id, {
+                type: "SET_TAB_ALWAYS_ACTIVE",
+                enabled: isChecked
+              });
+            } catch (err) {}
+
+            // Update row styling and counters
+            if (isChecked) {
+              row.classList.add("is-active");
+            } else {
+              row.classList.remove("is-active");
+            }
+
+            if (isCurrent && toggleAlwaysActiveCurrent) {
+              toggleAlwaysActiveCurrent.checked = isChecked;
+            }
+
+            const newCount = currentIds.length;
+            if (alwaysActiveCountBadge) {
+              if (newCount === 0) {
+                alwaysActiveCountBadge.textContent = "Off";
+                alwaysActiveCountBadge.classList.remove("active");
+              } else {
+                alwaysActiveCountBadge.textContent = `${newCount} Active`;
+                alwaysActiveCountBadge.classList.add("active");
+              }
+            }
+
+            if (isCurrent) {
+              setTimeout(refreshRestrictions, 150);
+            }
+          });
+
+          tabListContainer.appendChild(row);
+        });
+      }
     } catch (err) {
       console.warn("Could not render always active tabs list:", err);
     }
@@ -365,7 +419,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Action Buttons
   btnTabsEnableAll?.addEventListener("click", async () => {
     try {
-      const openTabs = await chrome.tabs.query({ currentWindow: true });
+      const openTabs = await chrome.tabs.query({});
       const allIds = openTabs.map((t) => t.id).filter(Boolean);
       await saveActiveTabsAlwaysActive(allIds);
 
@@ -385,7 +439,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   btnTabsDisableAll?.addEventListener("click", async () => {
     try {
-      const openTabs = await chrome.tabs.query({ currentWindow: true });
+      const openTabs = await chrome.tabs.query({});
       await saveActiveTabsAlwaysActive([]);
 
       for (const tab of openTabs) {
@@ -409,12 +463,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Initial tab render for accurate badge and current tab switch state
   renderAlwaysActiveTabs();
 
-  // Live real-time tab event updates while popup is open
+  // Live real-time tab & window event updates while popup is open
   if (chrome.tabs?.onCreated) {
     chrome.tabs.onCreated.addListener(() => renderAlwaysActiveTabs());
   }
   if (chrome.tabs?.onRemoved) {
     chrome.tabs.onRemoved.addListener(() => renderAlwaysActiveTabs());
+  }
+  if (chrome.tabs?.onActivated) {
+    chrome.tabs.onActivated.addListener(() => renderAlwaysActiveTabs());
   }
   if (chrome.tabs?.onUpdated) {
     chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
@@ -422,6 +479,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         renderAlwaysActiveTabs();
       }
     });
+  }
+  if (chrome.windows?.onCreated) {
+    chrome.windows.onCreated.addListener(() => renderAlwaysActiveTabs());
+  }
+  if (chrome.windows?.onRemoved) {
+    chrome.windows.onRemoved.addListener(() => renderAlwaysActiveTabs());
   }
 
   // Sync Force Select Toggle
