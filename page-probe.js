@@ -165,6 +165,21 @@
   // 1. Hook EventTarget.prototype.addEventListener to monitor what the page attaches
   const originalAddEventListener = EventTarget.prototype.addEventListener;
   EventTarget.prototype.addEventListener = function (type, listener, options) {
+    // 0. Guard against Permissions Policy violation for deprecated 'unload' event
+    if (type === "unload") {
+      try {
+        if (document.permissionsPolicy && typeof document.permissionsPolicy.allowsFeature === "function") {
+          if (!document.permissionsPolicy.allowsFeature("unload")) {
+            return;
+          }
+        } else {
+          return;
+        }
+      } catch (e) {
+        return;
+      }
+    }
+
     try {
       const fnStr = typeof listener === "function" ? listener.toString() : "";
 
