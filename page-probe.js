@@ -393,7 +393,37 @@
     true
   );
 
-  // 4. ALWAYS ACTIVE WINDOW (VISIBILITY & FOCUS SPOOFING)
+  // 4. SCREEN / WINDOW / TAB CAPTURE INTERCEPTOR (getDisplayMedia Hook)
+  if (navigator.mediaDevices && typeof navigator.mediaDevices.getDisplayMedia === "function") {
+    const origGetDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getDisplayMedia = async function (constraints) {
+      // Hide all in-tab extension badges before screen, window, or tab capture stream starts
+      const hostEl = document.getElementById("__forcepaste_host__");
+      if (hostEl) {
+        hostEl.style.setProperty("display", "none", "important");
+      }
+
+      try {
+        const stream = await origGetDisplayMedia(constraints);
+        const track = stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+        if (track) {
+          track.addEventListener("ended", () => {
+            if (hostEl && !featureState.ghostMode) {
+              hostEl.style.removeProperty("display");
+            }
+          });
+        }
+        return stream;
+      } catch (err) {
+        if (hostEl && !featureState.ghostMode) {
+          hostEl.style.removeProperty("display");
+        }
+        throw err;
+      }
+    };
+  }
+
+  // 5. ALWAYS ACTIVE WINDOW (VISIBILITY & FOCUS SPOOFING)
   // Overrides document.visibilityState, hidden, webkitHidden, mozHidden, hasFocus
   // and blocks visibilitychange, webkitvisibilitychange, mozvisibilitychange, blur, mouseleave
 

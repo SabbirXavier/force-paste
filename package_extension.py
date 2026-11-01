@@ -18,6 +18,8 @@ def package():
         "popup.js",
         "offscreen.html",
         "offscreen.js",
+        "ghost_overlay.py",
+        "ghost_overlay.bat",
         "icons/icon-16.png",
         "icons/icon-48.png",
         "icons/icon-128.png"

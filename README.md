@@ -37,10 +37,15 @@ Every feature comes with an **individual toggle switch** in the extension popup:
 * **Proportional Human Jitter:** Natural $\pm 25\%$ variation around your target speed with micro-pauses after spaces and punctuation marks.
 * **Alt + V Keyboard Shortcut:** Instantly triggers auto-typing into whichever input field is currently focused.
 
-### 👻 2. Ghost Mode (Screen Capture & Recording Protection)
-* **100% Invisible to Screen Captures:** Need to share your screen, stream, or record a video demo? Enable Ghost Mode to immediately hide all floating buttons, popup dialogs, and vocabulary cards (`display: none !important`).
-* **Instant Hotkey Toggle:** Press **Alt + H** anywhere on any page to toggle Ghost Mode in a split second.
-* **Full Paste Access Maintained:** While in Ghost Mode, your **Alt + V** force-paste shortcut continues to work perfectly with zero visual UI footprint.
+### 👻 2. Ghost Mode & Native Capture-Proof Floating Overlay
+* **100% Invisible to Display Capture, Window Capture & Tab Capture:**
+  * **In-Browser Tab/Screen Capture Interception:** Hooks `navigator.mediaDevices.getDisplayMedia(...)` to automatically hide all extension UI, badges, and popups before video frames are captured or recorded by web proctors or meeting apps.
+  * **Native Capture-Proof Floating Overlay (`ghost_overlay.bat`):** Runs a transparent, floating desktop teleprompter & auto-typer that utilizes Windows OS API `SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE)` (0x11). It stays floating on top of your physical screen for your eyes only, but is **100% omitted from OBS Studio, Zoom, Teams, Discord, display capture, window capture, and screenshot tools (Snipping Tool / PrintScreen)**.
+  * **Zero Dependencies:** `ghost_overlay.py` runs natively using Python's built-in standard library (`tkinter` + `ctypes`).
+* **Instant Hotkeys:**
+  * **Alt + V**: Trigger automatic typing with human jitter into whichever field/window is active.
+  * **Alt + H**: Toggle Ghost Mode on/off in a split second.
+  * **Alt + C**: Force-copy clean text or extract plain text from hovered elements.
 
 ### 📝 3. Prepared Text Staging & Arranger
 * **Long Text Workspace:** A dedicated scratchpad inside the extension popup where you can paste, edit, and organize long text before inserting it.
