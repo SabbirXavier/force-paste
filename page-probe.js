@@ -1,15 +1,17 @@
-// page-probe.js - Runs in MAIN execution world to detect and safely neutralize event blockers
+// page-probe.js - Runs in MAIN execution world to detect and safely neutralize event blockers,
+// spoof visibility/focus (Always Active Tab), and force-enable selection and copying.
 (() => {
-  if (window.__HUMAN_TYPER_PROBE_INITIALIZED__) return;
-  window.__HUMAN_TYPER_PROBE_INITIALIZED__ = true;
+  if (window.__FORCEPASTE_PROBE_INITIALIZED__) return;
+  window.__FORCEPASTE_PROBE_INITIALIZED__ = true;
 
-  // Active unblock state
-  const unblockState = {
+  // Active unblock & feature states
+  const featureState = {
     f12: false,
     contextmenu: false,
     copypaste: false,
     selection: false,
-    drag: false
+    drag: false,
+    alwaysActive: false
   };
 
   // Detected restrictions state
@@ -48,10 +50,17 @@
       blocked: false,
       details: "",
       unblocked: false
+    },
+    alwaysActive: {
+      id: "alwaysActive",
+      name: "Always Active Tab (Visibility Spoof)",
+      blocked: false,
+      details: "Spoofs document.visibilityState, hidden, hasFocus & blocks blur/visibilitychange",
+      unblocked: false
     }
   };
 
-  // 1. Hook EventTarget.prototype.addEventListener to detect what the page attaches
+  // 1. Hook EventTarget.prototype.addEventListener to monitor what the page attaches
   const originalAddEventListener = EventTarget.prototype.addEventListener;
   EventTarget.prototype.addEventListener = function (type, listener, options) {
     try {
@@ -73,7 +82,7 @@
           fnStr.includes("ctrlKey")
         ) {
           detectedRestrictions.f12.blocked = true;
-          detectedRestrictions.f12.details = "Page registered a keydown listener checking Keycode 123 (F12) or Ctrl modifiers";
+          detectedRestrictions.f12.details = "Page registered keydown listener checking F12 (123) or Ctrl modifiers";
           notifyDetection();
         }
         if (fnStr.includes("paste") || fnStr.includes("copy") || fnStr.includes("KeyC") || fnStr.includes("KeyV")) {
@@ -100,18 +109,23 @@
         detectedRestrictions.drag.details = "Page registered a 'dragstart' listener";
         notifyDetection();
       }
+
+      if (type === "visibilitychange" || type === "webkitvisibilitychange" || type === "mozvisibilitychange" || type === "blur") {
+        detectedRestrictions.alwaysActive.blocked = true;
+        detectedRestrictions.alwaysActive.details = `Page registered '${type}' listener to detect background tab switching`;
+        notifyDetection();
+      }
     } catch (e) {}
 
     return originalAddEventListener.apply(this, arguments);
   };
 
-  // 2. Scan property handlers (window.oncontextmenu, document.onkeydown, etc.)
+  // 2. Scan property handlers
   function scanPropertyBlockers() {
     try {
-      // Check Context Menu
       const ctxBlocked =
-        (typeof window.oncontextmenu === "function") ||
-        (typeof document.oncontextmenu === "function") ||
+        typeof window.oncontextmenu === "function" ||
+        typeof document.oncontextmenu === "function" ||
         (document.body && typeof document.body.oncontextmenu === "function");
 
       if (ctxBlocked) {
@@ -119,7 +133,6 @@
         detectedRestrictions.contextmenu.details = "Page set oncontextmenu to cancel right-clicks";
       }
 
-      // Check F12 / Keydown
       const kdFn = document.onkeydown || window.onkeydown;
       if (typeof kdFn === "function") {
         const kdStr = kdFn.toString();
@@ -139,121 +152,250 @@
         }
       }
 
-      // Check oncopy / onpaste
       if (document.oncopy || window.oncopy || document.onpaste || window.onpaste) {
         detectedRestrictions.copypaste.blocked = true;
         detectedRestrictions.copypaste.details = "Page set oncopy or onpaste handlers";
       }
 
-      // Check onselectstart
       if (document.onselectstart || (document.body && document.body.onselectstart)) {
         detectedRestrictions.selection.blocked = true;
         detectedRestrictions.selection.details = "Page set onselectstart handler to disable text selection";
       }
 
-      // Check CSS user-select: none
       if (document.body) {
         const bodyStyle = window.getComputedStyle(document.body);
         const htmlStyle = window.getComputedStyle(document.documentElement);
-        if (bodyStyle.userSelect === "none" || bodyStyle.webkitUserSelect === "none" ||
-            htmlStyle.userSelect === "none" || htmlStyle.webkitUserSelect === "none") {
+        if (
+          bodyStyle.userSelect === "none" ||
+          bodyStyle.webkitUserSelect === "none" ||
+          htmlStyle.userSelect === "none" ||
+          htmlStyle.webkitUserSelect === "none"
+        ) {
           detectedRestrictions.selection.blocked = true;
           detectedRestrictions.selection.details = "Page CSS applies 'user-select: none' across elements";
         }
       }
 
-      // Check ondragstart
       if (document.ondragstart || (document.body && document.body.ondragstart)) {
         detectedRestrictions.drag.blocked = true;
         detectedRestrictions.drag.details = "Page set ondragstart handler";
+      }
+
+      if (typeof window.onblur === "function" || typeof document.onvisibilitychange === "function") {
+        detectedRestrictions.alwaysActive.blocked = true;
       }
 
       notifyDetection();
     } catch (e) {}
   }
 
-  // 3. CAPTURE PHASE INTERCEPTION (Safe Local Unblocking)
-  // This is the core magic: By handling and stopping propagation in the capture phase,
-  // the page's event listeners NEVER receive the event.
-  // Hence, any telemetry, cheat-logging, or alert script on the page never executes!
+  // 3. CAPTURE PHASE INTERCEPTION
 
-  // Unblock F12 / DevTools
-  window.addEventListener("keydown", (e) => {
-    if (!unblockState.f12) return;
+  // F12 / DevTools
+  window.addEventListener(
+    "keydown",
+    (e) => {
+      if (!featureState.f12) return;
+      const isF12 = e.key === "F12" || e.keyCode === 123 || e.which === 123;
+      const isDevTools = e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes((e.key || "").toUpperCase());
+      const isViewSource = e.ctrlKey && (e.key === "u" || e.key === "U");
 
-    const isF12 = e.key === "F12" || e.keyCode === 123 || e.which === 123;
-    const isDevTools = e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes((e.key || "").toUpperCase());
-    const isViewSource = e.ctrlKey && (e.key === "u" || e.key === "U");
-
-    if (isF12 || isDevTools || isViewSource) {
-      // Stop the website's blocking handler from receiving or canceling this event!
-      e.stopImmediatePropagation();
-    }
-  }, true); // CAPTURE: runs before website listeners
-
-  // Unblock Right Click
-  window.addEventListener("contextmenu", (e) => {
-    if (!unblockState.contextmenu) return;
-
-    // Stop the website's blocking handler from canceling the context menu
-    e.stopImmediatePropagation();
-  }, true); // CAPTURE
-
-  // Unblock Clipboard (Copy / Cut / Paste)
-  ["copy", "cut", "paste"].forEach((evtType) => {
-    window.addEventListener(evtType, (e) => {
-      if (!unblockState.copypaste) return;
-      e.stopImmediatePropagation();
-    }, true);
-  });
-
-  // Also prevent website onkeydown from canceling Ctrl+C / Ctrl+V / Ctrl+A
-  window.addEventListener("keydown", (e) => {
-    if (!unblockState.copypaste) return;
-
-    if (e.ctrlKey || e.metaKey) {
-      const k = (e.key || "").toLowerCase();
-      if (["c", "v", "x", "a"].includes(k)) {
+      if (isF12 || isDevTools || isViewSource) {
         e.stopImmediatePropagation();
       }
+    },
+    true
+  );
+
+  // Right Click
+  window.addEventListener(
+    "contextmenu",
+    (e) => {
+      if (!featureState.contextmenu) return;
+      e.stopImmediatePropagation();
+    },
+    true
+  );
+
+  // Copy / Cut / Paste
+  ["copy", "cut", "paste"].forEach((evtType) => {
+    window.addEventListener(
+      evtType,
+      (e) => {
+        if (!featureState.copypaste) return;
+        e.stopImmediatePropagation();
+      },
+      true
+    );
+  });
+
+  window.addEventListener(
+    "keydown",
+    (e) => {
+      if (!featureState.copypaste) return;
+      if (e.ctrlKey || e.metaKey) {
+        const k = (e.key || "").toLowerCase();
+        if (["c", "v", "x", "a"].includes(k)) {
+          e.stopImmediatePropagation();
+        }
+      }
+    },
+    true
+  );
+
+  // Selection & Drag
+  window.addEventListener(
+    "selectstart",
+    (e) => {
+      if (!featureState.selection) return;
+      e.stopImmediatePropagation();
+    },
+    true
+  );
+
+  window.addEventListener(
+    "dragstart",
+    (e) => {
+      if (!featureState.drag) return;
+      e.stopImmediatePropagation();
+    },
+    true
+  );
+
+  // 4. ALWAYS ACTIVE WINDOW (VISIBILITY & FOCUS SPOOFING)
+  // Overrides document.visibilityState, hidden, webkitHidden, mozHidden, hasFocus
+  // and blocks visibilitychange, webkitvisibilitychange, mozvisibilitychange, blur, mouseleave
+
+  // Store original descriptors
+  const origVisibilityState = Object.getOwnPropertyDescriptor(Document.prototype, "visibilityState");
+  const origHidden = Object.getOwnPropertyDescriptor(Document.prototype, "hidden");
+  const origWebkitHidden = Object.getOwnPropertyDescriptor(Document.prototype, "webkitHidden");
+  const origMozHidden = Object.getOwnPropertyDescriptor(Document.prototype, "mozHidden");
+  const origHasFocus = Document.prototype.hasFocus;
+
+  function enableAlwaysActive(enable) {
+    featureState.alwaysActive = enable;
+    detectedRestrictions.alwaysActive.unblocked = enable;
+
+    if (enable) {
+      try {
+        // Override visibility properties on Document.prototype
+        Object.defineProperty(Document.prototype, "visibilityState", {
+          get: () => "visible",
+          configurable: true
+        });
+        Object.defineProperty(Document.prototype, "hidden", {
+          get: () => false,
+          configurable: true
+        });
+        Object.defineProperty(Document.prototype, "webkitHidden", {
+          get: () => false,
+          configurable: true
+        });
+        Object.defineProperty(Document.prototype, "mozHidden", {
+          get: () => false,
+          configurable: true
+        });
+        Document.prototype.hasFocus = () => true;
+
+        // Also define on document instance for older sites
+        try {
+          Object.defineProperty(document, "visibilityState", { get: () => "visible", configurable: true });
+          Object.defineProperty(document, "hidden", { get: () => false, configurable: true });
+          document.hasFocus = () => true;
+        } catch (e) {}
+
+        // Clear window.onblur and window.onmouseleave
+        if (typeof window.onblur === "function") {
+          window._savedOnBlur = window.onblur;
+          window.onblur = null;
+        }
+      } catch (err) {}
+    } else {
+      // Revert to original descriptors
+      try {
+        if (origVisibilityState) Object.defineProperty(Document.prototype, "visibilityState", origVisibilityState);
+        if (origHidden) Object.defineProperty(Document.prototype, "hidden", origHidden);
+        if (origWebkitHidden) Object.defineProperty(Document.prototype, "webkitHidden", origWebkitHidden);
+        if (origMozHidden) Object.defineProperty(Document.prototype, "mozHidden", origMozHidden);
+        if (origHasFocus) Document.prototype.hasFocus = origHasFocus;
+
+        if (window._savedOnBlur) {
+          window.onblur = window._savedOnBlur;
+        }
+      } catch (err) {}
     }
-  }, true);
+  }
 
-  // Unblock Selection
-  window.addEventListener("selectstart", (e) => {
-    if (!unblockState.selection) return;
-    e.stopImmediatePropagation();
-  }, true);
+  // Intercept visibilitychange, blur, mouseleave events in capture phase
+  const visibilityEvents = [
+    "visibilitychange",
+    "webkitvisibilitychange",
+    "mozvisibilitychange",
+    "blur",
+    "mouseleave"
+  ];
 
-  // Unblock Drag
-  window.addEventListener("dragstart", (e) => {
-    if (!unblockState.drag) return;
-    e.stopImmediatePropagation();
-  }, true);
+  visibilityEvents.forEach((evtType) => {
+    window.addEventListener(
+      evtType,
+      (e) => {
+        if (!featureState.alwaysActive) return;
+        // Suppress event completely so site thinks tab is permanently active
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      },
+      true // Capture phase: catches before page listeners
+    );
 
-  // Apply CSS overrides when selection is unblocked
+    document.addEventListener(
+      evtType,
+      (e) => {
+        if (!featureState.alwaysActive) return;
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      },
+      true
+    );
+  });
+
+  // 5. FORCE SELECT & COPY ENGINE
   function applySelectionCSS(enable) {
-    let el = document.getElementById("__ht_unblock_selection_style__");
+    let el = document.getElementById("__forcepaste_unblock_selection_style__");
     if (enable) {
       if (!el) {
         el = document.createElement("style");
-        el.id = "__ht_unblock_selection_style__";
+        el.id = "__forcepaste_unblock_selection_style__";
         el.textContent = `
-          * {
-            -webkit-user-select: auto !important;
-            -moz-user-select: auto !important;
-            -ms-user-select: auto !important;
-            user-select: auto !important;
+          *, *::before, *::after {
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+            user-select: text !important;
+            -webkit-touch-callout: default !important;
+            pointer-events: auto !important;
+          }
+          ::selection {
+            background-color: #3b82f6 !important;
+            color: #ffffff !important;
           }
         `;
         (document.head || document.documentElement).appendChild(el);
       }
+
+      // Nullify inline blockers
+      try {
+        document.onselectstart = null;
+        if (document.body) {
+          document.body.onselectstart = null;
+          document.body.style.userSelect = "text";
+        }
+      } catch (e) {}
     } else {
       if (el) el.remove();
     }
   }
 
-  // Apply property cleaning when context menu is unblocked
   function applyContextMenuClean(enable) {
     if (enable) {
       try {
@@ -267,7 +409,6 @@
   function applyF12Clean(enable) {
     if (enable) {
       try {
-        // If document.onkeydown is intercepting 123/17, replace with safe pass-through
         if (document.onkeydown) {
           const original = document.onkeydown;
           document.onkeydown = function (e) {
@@ -279,22 +420,25 @@
     }
   }
 
-  // Notify Content Script of detected restrictions
   function notifyDetection() {
-    window.postMessage({
-      type: "HT_RESTRICTIONS_UPDATE",
-      restrictions: detectedRestrictions
-    }, "*");
+    window.postMessage(
+      {
+        type: "HT_RESTRICTIONS_UPDATE",
+        restrictions: detectedRestrictions,
+        featureState: featureState
+      },
+      "*"
+    );
   }
 
-  // Listen for unblock toggle commands from content script
+  // Listen for control messages from content script
   window.addEventListener("message", (e) => {
     if (!e.data || e.data.type !== "HT_SET_UNBLOCK_STATE") return;
 
     const { key, unblock } = e.data;
     if (key === "all") {
-      Object.keys(unblockState).forEach((k) => {
-        unblockState[k] = unblock;
+      Object.keys(featureState).forEach((k) => {
+        featureState[k] = unblock;
         if (detectedRestrictions[k]) {
           detectedRestrictions[k].unblocked = unblock;
         }
@@ -302,8 +446,11 @@
       applySelectionCSS(unblock);
       applyContextMenuClean(unblock);
       applyF12Clean(unblock);
-    } else if (unblockState[key] !== undefined) {
-      unblockState[key] = unblock;
+      enableAlwaysActive(unblock);
+    } else if (key === "alwaysActive") {
+      enableAlwaysActive(unblock);
+    } else if (featureState[key] !== undefined) {
+      featureState[key] = unblock;
       if (detectedRestrictions[key]) {
         detectedRestrictions[key].unblocked = unblock;
       }
@@ -315,9 +462,8 @@
     notifyDetection();
   });
 
-  // Run scans at multiple lifecycles
   scanPropertyBlockers();
   document.addEventListener("DOMContentLoaded", scanPropertyBlockers);
   window.addEventListener("load", scanPropertyBlockers);
-  setInterval(scanPropertyBlockers, 1500); // Periodic check for late-loading scripts
+  setInterval(scanPropertyBlockers, 1500);
 })();

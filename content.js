@@ -1,7 +1,10 @@
-// HumanTyper Content Script - Bypasses Paste/DevTools blockers safely
+// ForcePaste & Shield Content Script
+// Handles Human Typing, Floating Badges, Offscreen Clipboard,
+// Vocabulary/Thesaurus Helper, Text Staging, and Unblocking Controllers.
+
 (() => {
-  if (window.__HUMAN_TYPER_CONTENT_INITIALIZED__) return;
-  window.__HUMAN_TYPER_CONTENT_INITIALIZED__ = true;
+  if (window.__FORCEPASTE_CONTENT_INITIALIZED__) return;
+  window.__FORCEPASTE_CONTENT_INITIALIZED__ = true;
 
   // Settings cache
   let settings = {
@@ -11,7 +14,11 @@
     customWPM: 60,
     showFloatingIcon: true,
     naturalJitter: true,
-    autoUnblock: false
+    autoUnblock: false,
+    alwaysActive: false,
+    forceSelect: false,
+    vocabHelper: true,
+    stagedText: ""
   };
 
   // State
@@ -20,10 +27,14 @@
   let abortTyping = false;
   let hideTimeout = null;
   let currentRestrictions = null;
+  let selectedWord = "";
 
   // Load settings
   chrome.storage.local.get(null, (res) => {
-    if (res) settings = { ...settings, ...res };
+    if (res) {
+      settings = { ...settings, ...res };
+      syncProbeFeatures();
+    }
   });
 
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -31,11 +42,17 @@
       for (const [key, change] of Object.entries(changes)) {
         settings[key] = change.newValue;
       }
+      syncProbeFeatures();
       if (!settings.showFloatingIcon || !settings.enabled) {
         hideButton();
       }
     }
   });
+
+  function syncProbeFeatures() {
+    window.postMessage({ type: "HT_SET_UNBLOCK_STATE", key: "alwaysActive", unblock: !!settings.alwaysActive }, "*");
+    window.postMessage({ type: "HT_SET_UNBLOCK_STATE", key: "selection", unblock: !!settings.forceSelect }, "*");
+  }
 
   // Listen for restrictions updates from page-probe.js (MAIN world)
   window.addEventListener("message", (e) => {
@@ -69,15 +86,32 @@
       sendResponse({ success: true });
       return true;
     }
+
+    if (msg.type === "TYPE_STAGED_TEXT") {
+      const target = activeElement || (isEditable(document.activeElement) ? document.activeElement : null);
+      if (target && msg.text) {
+        typeTextIntoElement(target, msg.text);
+      }
+      sendResponse({ success: true });
+      return true;
+    }
+
+    if (msg.type === "SHOW_DEFINITION") {
+      if (msg.word) {
+        showVocabModal(msg.word, window.innerWidth / 2 - 160, 100);
+      }
+      sendResponse({ success: true });
+      return true;
+    }
   });
 
   // Create isolated Shadow DOM Host
   const host = document.createElement("div");
-  host.id = "__human_typer_host__";
+  host.id = "__forcepaste_host__";
   host.style.all = "initial";
   const shadow = host.attachShadow({ mode: "open" });
 
-  // Styles for the floating pill and modal
+  // Styles inside Shadow DOM
   const style = document.createElement("style");
   style.textContent = `
     * {
@@ -111,7 +145,7 @@
       padding: 4px 9px;
       height: 26px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
       color: #ffffff;
       background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
       border: 1px solid rgba(255, 255, 255, 0.2);
@@ -128,18 +162,8 @@
       transform: translateY(-1px);
     }
 
-    .ht-btn:active {
-      transform: translateY(0);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    }
-
     .ht-btn.ht-stop {
       background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    }
-
-    .ht-btn.ht-stop:hover {
-      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-      box-shadow: 0 3px 8px rgba(220, 38, 38, 0.35);
     }
 
     .ht-btn svg {
@@ -201,16 +225,8 @@
       font-family: inherit;
       resize: vertical;
       outline: none;
-      user-select: auto !important;
-      -webkit-user-select: auto !important;
       color: #1f2937;
       background: #fafafa;
-    }
-
-    #ht-dialog textarea:focus {
-      border-color: #4f46e5;
-      background: #ffffff;
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
     }
 
     .ht-dialog-actions {
@@ -235,7 +251,6 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      transition: background 0.1s ease;
     }
 
     .ht-btn-clip {
@@ -243,17 +258,9 @@
       color: #4338ca;
     }
 
-    .ht-btn-clip:hover {
-      background: #c7d2fe;
-    }
-
     .ht-btn-cancel {
       background: #f3f4f6;
       color: #374151;
-    }
-
-    .ht-btn-cancel:hover {
-      background: #e5e7eb;
     }
 
     .ht-btn-confirm {
@@ -261,8 +268,193 @@
       color: #ffffff;
     }
 
-    .ht-btn-confirm:hover {
-      background: #4338ca;
+    /* 4th: VOCABULARY / THESAURUS HELPER UI */
+    #fp-define-badge {
+      position: absolute;
+      z-index: 2147483647;
+      display: none;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      height: 26px;
+      background: #111827;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: transform 0.12s ease;
+      user-select: none;
+      pointer-events: auto;
+    }
+
+    #fp-define-badge:hover {
+      background: #1f2937;
+      transform: scale(1.05);
+    }
+
+    #fp-define-badge svg {
+      width: 12px;
+      height: 12px;
+      fill: #a5b4fc;
+    }
+
+    /* Floating Vocab Card (Dark Theme matching screenshots) */
+    #fp-vocab-card {
+      position: absolute;
+      z-index: 2147483647;
+      width: 330px;
+      max-width: 92vw;
+      max-height: 440px;
+      background: #181d24;
+      color: #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 14px 35px rgba(0,0,0,0.45);
+      border: 1px solid #2d3748;
+      padding: 14px 16px;
+      display: none;
+      font-size: 12px;
+      overflow-y: auto;
+      pointer-events: auto;
+    }
+
+    .fp-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #2d3748;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+    }
+
+    .fp-card-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .fp-speaker-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #3b82f6;
+      border: none;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.1s ease, background 0.1s ease;
+      flex-shrink: 0;
+    }
+
+    .fp-speaker-btn:hover {
+      background: #2563eb;
+      transform: scale(1.08);
+    }
+
+    .fp-speaker-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .fp-word-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .fp-word-phonetic {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-left: 2px;
+    }
+
+    .fp-close-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 16px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+    }
+
+    .fp-close-btn:hover {
+      color: #ffffff;
+    }
+
+    .fp-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #60a5fa;
+      margin-top: 10px;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .fp-part-of-speech {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #334155;
+      color: #cbd5e1;
+      margin-right: 6px;
+    }
+
+    .fp-definition-item {
+      margin-bottom: 8px;
+      line-height: 1.45;
+      color: #cbd5e1;
+      font-size: 12px;
+    }
+
+    .fp-example {
+      font-size: 11px;
+      font-style: italic;
+      color: #94a3b8;
+      margin-top: 2px;
+      border-left: 2px solid #475569;
+      padding-left: 6px;
+    }
+
+    .fp-synonyms-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 6px;
+    }
+
+    .fp-synonym-pill {
+      background: #1e293b;
+      color: #93c5fd;
+      border: 1px solid #3b82f6;
+      border-radius: 12px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+
+    .fp-synonym-pill:hover {
+      background: #3b82f6;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .fp-copied-toast {
+      font-size: 10px;
+      color: #34d399;
+      font-weight: 600;
     }
   `;
 
@@ -277,7 +469,6 @@
     <svg viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4 0.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
     <span class="ht-label">ForcePaste</span>
   `;
-
   container.appendChild(pasteBtn);
 
   // Fallback modal dialog
@@ -287,7 +478,7 @@
     <div id="ht-dialog">
       <h3>
         <svg style="width:16px;height:16px;fill:#4f46e5;" viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4 0.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
-        Paste Text to Auto-Type
+        ForcePaste - Auto-Type Text
       </h3>
       <p>Paste text below (Ctrl+V works here) or click <b>Paste from Clipboard</b>:</p>
       <textarea id="ht-modal-textarea" placeholder="Paste text here (Ctrl+V works)..."></textarea>
@@ -305,28 +496,45 @@
   `;
 
   // Isolate dialog from website event listeners
-  const isolatedEvents = [
-    "keydown",
-    "keyup",
-    "keypress",
-    "contextmenu",
-    "copy",
-    "paste",
-    "cut",
-    "mousedown",
-    "mouseup"
-  ];
+  const isolatedEvents = ["keydown", "keyup", "keypress", "contextmenu", "copy", "paste", "cut", "mousedown", "mouseup"];
   isolatedEvents.forEach((evt) => {
-    dialogOverlay.addEventListener(evt, (e) => {
-      e.stopPropagation();
-    }, true);
+    dialogOverlay.addEventListener(evt, (e) => e.stopPropagation(), true);
   });
+
+  // Vocabulary Helper Elements
+  const defineBadge = document.createElement("div");
+  defineBadge.id = "fp-define-badge";
+  defineBadge.innerHTML = `
+    <svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+    <span>Define</span>
+  `;
+
+  const vocabCard = document.createElement("div");
+  vocabCard.id = "fp-vocab-card";
+  vocabCard.innerHTML = `
+    <div class="fp-card-header">
+      <div class="fp-card-title-row">
+        <button class="fp-speaker-btn" title="Pronounce word" id="fp-card-speaker">
+          <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+        </button>
+        <div>
+          <span class="fp-word-title" id="fp-card-word">word</span>
+          <span class="fp-word-phonetic" id="fp-card-phonetic">/phonetic/</span>
+        </div>
+      </div>
+      <button class="fp-close-btn" id="fp-card-close">&times;</button>
+    </div>
+    <div id="fp-card-content">
+      <div style="color:#94a3b8;padding:8px 0;">Looking up definitions & synonyms...</div>
+    </div>
+  `;
 
   shadow.appendChild(style);
   shadow.appendChild(container);
   shadow.appendChild(dialogOverlay);
+  shadow.appendChild(defineBadge);
+  shadow.appendChild(vocabCard);
 
-  // Append host to DOM
   const mountHost = () => {
     if (!document.documentElement.contains(host)) {
       (document.body || document.documentElement).appendChild(host);
@@ -370,10 +578,10 @@
     if (isSmall) {
       top = scrollY + rect.top - 30;
       if (top < scrollY + 4) top = scrollY + rect.bottom + 4;
-      left = scrollX + rect.right - 65;
+      left = scrollX + rect.right - 85;
     } else {
       top = scrollY + rect.top + 3;
-      left = scrollX + rect.right - 70;
+      left = scrollX + rect.right - 90;
     }
 
     if (left < scrollX + 4) left = scrollX + 4;
@@ -387,44 +595,60 @@
     container.classList.remove("ht-visible");
   }
 
-  document.addEventListener("focusin", (e) => {
-    if (dialogOverlay.style.display === "flex") return;
-    if (e.target && isEditable(e.target)) {
-      activeElement = e.target;
-      if (hideTimeout) clearTimeout(hideTimeout);
-      if (settings.enabled && settings.showFloatingIcon && !isTyping) {
-        mountHost();
-        updateButtonPosition(activeElement);
+  document.addEventListener(
+    "focusin",
+    (e) => {
+      if (dialogOverlay.style.display === "flex") return;
+      if (e.target && isEditable(e.target)) {
+        activeElement = e.target;
+        if (hideTimeout) clearTimeout(hideTimeout);
+        if (settings.enabled && settings.showFloatingIcon && !isTyping) {
+          mountHost();
+          updateButtonPosition(activeElement);
+        }
       }
-    }
-  }, true);
+    },
+    true
+  );
 
-  document.addEventListener("focusout", (e) => {
-    hideTimeout = setTimeout(() => {
-      if (!isTyping && dialogOverlay.style.display !== "flex") {
-        hideButton();
+  document.addEventListener(
+    "focusout",
+    (e) => {
+      hideTimeout = setTimeout(() => {
+        if (!isTyping && dialogOverlay.style.display !== "flex") {
+          hideButton();
+        }
+      }, 350);
+    },
+    true
+  );
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (activeElement && container.classList.contains("ht-visible")) {
+        requestAnimationFrame(() => updateButtonPosition(activeElement));
       }
-    }, 350);
-  }, true);
+    },
+    { passive: true }
+  );
 
-  window.addEventListener("scroll", () => {
-    if (activeElement && container.classList.contains("ht-visible")) {
-      requestAnimationFrame(() => updateButtonPosition(activeElement));
-    }
-  }, { passive: true });
-
-  window.addEventListener("resize", () => {
-    if (activeElement && container.classList.contains("ht-visible")) {
-      requestAnimationFrame(() => updateButtonPosition(activeElement));
-    }
-  }, { passive: true });
+  window.addEventListener(
+    "resize",
+    () => {
+      if (activeElement && container.classList.contains("ht-visible")) {
+        requestAnimationFrame(() => updateButtonPosition(activeElement));
+      }
+    },
+    { passive: true }
+  );
 
   container.addEventListener("mousedown", (e) => {
     e.preventDefault();
     if (hideTimeout) clearTimeout(hideTimeout);
   });
 
-  // Typing engine with manual WPM support
+  // Typing engine
   async function typeTextIntoElement(target, text) {
     if (!target || !text) return;
     isTyping = true;
@@ -439,19 +663,17 @@
     try {
       target.focus();
 
-      // Compute base delay from WPM
-      let baseDelay = 200; // default ~60 WPM
+      let baseDelay = 200;
       const wpm = parseInt(settings.customWPM, 10) || 60;
 
       if (settings.speedMode === "instant") {
         baseDelay = 0;
       } else if (settings.speedMode === "custom") {
-        // Standard formula: 1 word = 5 chars. Delay = 60,000 / (WPM * 5) = 12,000 / WPM
         baseDelay = Math.round(12000 / Math.max(10, Math.min(600, wpm)));
       } else if (settings.speedMode === "fast") {
-        baseDelay = 12; // ~150-200 WPM
+        baseDelay = 12;
       } else if (settings.speedMode === "human") {
-        baseDelay = 220; // ~50-55 WPM
+        baseDelay = 220;
       }
 
       for (let i = 0; i < text.length; i++) {
@@ -460,29 +682,18 @@
         const char = text[i];
         insertSingleCharacter(target, char);
 
-        if (settings.speedMode === "instant") {
-          continue;
-        }
+        if (settings.speedMode === "instant") continue;
 
         let delay = baseDelay;
-
         if (settings.naturalJitter) {
-          // Proportionate jitter (~25% variance around base delay)
           const variance = baseDelay * 0.25;
           const jitter = (Math.random() * variance * 2) - variance;
           delay = Math.max(5, delay + jitter);
 
-          // Natural pauses on spaces and punctuation
-          if (char === " ") {
-            delay += (baseDelay * 0.2);
-          } else if ([".", ",", "!", "?", ";", ":", "\n"].includes(char)) {
-            delay += (baseDelay * 0.5);
-          }
+          if (char === " ") delay += baseDelay * 0.2;
+          else if ([".", ",", "!", "?", ";", ":", "\n"].includes(char)) delay += baseDelay * 0.5;
 
-          // Random human micro-pause every ~25 characters
-          if (i > 0 && i % 25 === 0 && Math.random() > 0.4) {
-            delay += (baseDelay * 0.8);
-          }
+          if (i > 0 && i % 25 === 0 && Math.random() > 0.4) delay += baseDelay * 0.8;
         }
 
         await new Promise((r) => setTimeout(r, Math.max(5, delay)));
@@ -507,28 +718,29 @@
     const code = char.length === 1 ? `Key${char.toUpperCase()}` : "Enter";
     const keyCode = char.charCodeAt(0);
 
-    // 1. Dispatch keydown
-    target.dispatchEvent(new KeyboardEvent("keydown", {
-      key: char,
-      code: code,
-      keyCode: keyCode,
-      which: keyCode,
-      charCode: keyCode,
-      bubbles: true,
-      composed: true,
-      cancelable: true
-    }));
+    target.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: char,
+        code: code,
+        keyCode: keyCode,
+        which: keyCode,
+        charCode: keyCode,
+        bubbles: true,
+        composed: true,
+        cancelable: true
+      })
+    );
 
-    // 2. Dispatch beforeinput
-    target.dispatchEvent(new InputEvent("beforeinput", {
-      bubbles: true,
-      composed: true,
-      cancelable: true,
-      inputType: "insertText",
-      data: char
-    }));
+    target.dispatchEvent(
+      new InputEvent("beforeinput", {
+        bubbles: true,
+        composed: true,
+        cancelable: true,
+        inputType: "insertText",
+        data: char
+      })
+    );
 
-    // 3. Insert character
     let inserted = false;
     try {
       inserted = document.execCommand("insertText", false, char);
@@ -555,12 +767,14 @@
         target.setSelectionRange(nextPos, nextPos);
       }
 
-      target.dispatchEvent(new InputEvent("input", {
-        bubbles: true,
-        composed: true,
-        inputType: "insertText",
-        data: char
-      }));
+      target.dispatchEvent(
+        new InputEvent("input", {
+          bubbles: true,
+          composed: true,
+          inputType: "insertText",
+          data: char
+        })
+      );
     } else if (!inserted && target.isContentEditable) {
       const sel = window.getSelection();
       if (sel && sel.rangeCount > 0) {
@@ -572,29 +786,31 @@
         range.collapse(true);
         sel.removeAllRanges();
         sel.addRange(range);
-        target.dispatchEvent(new InputEvent("input", {
-          bubbles: true,
-          composed: true,
-          inputType: "insertText",
-          data: char
-        }));
+        target.dispatchEvent(
+          new InputEvent("input", {
+            bubbles: true,
+            composed: true,
+            inputType: "insertText",
+            data: char
+          })
+        );
       }
     }
 
-    // 4. Dispatch keyup
-    target.dispatchEvent(new KeyboardEvent("keyup", {
-      key: char,
-      code: code,
-      keyCode: keyCode,
-      which: keyCode,
-      charCode: keyCode,
-      bubbles: true,
-      composed: true,
-      cancelable: true
-    }));
+    target.dispatchEvent(
+      new KeyboardEvent("keyup", {
+        key: char,
+        code: code,
+        keyCode: keyCode,
+        which: keyCode,
+        charCode: keyCode,
+        bubbles: true,
+        composed: true,
+        cancelable: true
+      })
+    );
   }
 
-  // Universal clipboard reader
   async function fetchClipboardText() {
     try {
       const resp = await chrome.runtime.sendMessage({ type: "READ_CLIPBOARD_BG" });
@@ -679,15 +895,243 @@
     performPaste();
   });
 
-  document.addEventListener("keydown", (e) => {
-    if (e.altKey && (e.key === "v" || e.key === "V" || e.code === "KeyV")) {
-      const target = isEditable(document.activeElement) ? document.activeElement : activeElement;
-      if (target) {
-        e.preventDefault();
-        e.stopPropagation();
-        activeElement = target;
-        performPaste();
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.altKey && (e.key === "v" || e.key === "V" || e.code === "KeyV")) {
+        const target = isEditable(document.activeElement) ? document.activeElement : activeElement;
+        if (target) {
+          e.preventDefault();
+          e.stopPropagation();
+          activeElement = target;
+          performPaste();
+        }
       }
+    },
+    true
+  );
+
+  // =========================================================================
+  // 4TH FEATURE: VOCABULARY / THESAURUS HELPER IMPLEMENTATION
+  // =========================================================================
+
+  let currentAudioUrl = null;
+
+  function pronounceWord(word) {
+    if (currentAudioUrl) {
+      const audio = new Audio(currentAudioUrl);
+      audio.play().catch(() => speakWord(word));
+    } else {
+      speakWord(word);
     }
-  }, true);
+  }
+
+  function speakWord(word) {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(word);
+      utter.lang = "en-US";
+      window.speechSynthesis.speak(utter);
+    }
+  }
+
+  async function fetchWordDetails(word) {
+    let result = {
+      word: word,
+      phonetic: "",
+      audioUrl: null,
+      definitions: [],
+      synonyms: []
+    };
+
+    try {
+      const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const entry = data[0];
+          result.phonetic = entry.phonetic || (entry.phonetics?.find((p) => p.text)?.text) || "";
+          result.audioUrl = entry.phonetics?.find((p) => p.audio)?.audio || null;
+
+          if (entry.meanings) {
+            entry.meanings.forEach((m) => {
+              const part = m.partOfSpeech || "";
+              m.definitions?.slice(0, 2).forEach((d) => {
+                result.definitions.push({
+                  partOfSpeech: part,
+                  definition: d.definition,
+                  example: d.example || ""
+                });
+              });
+              if (m.synonyms) {
+                result.synonyms.push(...m.synonyms);
+              }
+            });
+          }
+        }
+      }
+    } catch (e) {}
+
+    // Datamuse API fallback / supplement for rich synonyms
+    if (result.synonyms.length < 5) {
+      try {
+        const dmRes = await fetch(`https://api.datamuse.com/words?rel_syn=${encodeURIComponent(word)}&max=15`);
+        if (dmRes.ok) {
+          const dmData = await dmRes.json();
+          if (Array.isArray(dmData)) {
+            const extraSyns = dmData.map((item) => item.word);
+            result.synonyms = Array.from(new Set([...result.synonyms, ...extraSyns]));
+          }
+        }
+      } catch (e) {}
+    }
+
+    return result;
+  }
+
+  async function showVocabModal(word, x, y) {
+    mountHost();
+    selectedWord = word;
+    currentAudioUrl = null;
+
+    const wordEl = shadow.querySelector("#fp-card-word");
+    const phoneticEl = shadow.querySelector("#fp-card-phonetic");
+    const contentEl = shadow.querySelector("#fp-card-content");
+
+    wordEl.textContent = word;
+    phoneticEl.textContent = "...";
+    contentEl.innerHTML = `<div style="color:#94a3b8;padding:12px 0;">Searching Oxford definitions & synonyms...</div>`;
+
+    // Position modal safely within viewport
+    const modalWidth = 330;
+    let left = Math.min(Math.max(10, x), window.innerWidth - modalWidth - 20) + window.scrollX;
+    let top = y + window.scrollY;
+
+    vocabCard.style.left = `${left}px`;
+    vocabCard.style.top = `${top}px`;
+    vocabCard.style.display = "block";
+    defineBadge.style.display = "none";
+
+    const data = await fetchWordDetails(word);
+    phoneticEl.textContent = data.phonetic || "";
+    currentAudioUrl = data.audioUrl;
+
+    let html = "";
+
+    if (data.definitions.length > 0) {
+      html += `<div class="fp-section-title"><span>Definitions</span><span style="font-size:10px;color:#94a3b8;">${data.definitions.length} found</span></div>`;
+      data.definitions.slice(0, 3).forEach((d) => {
+        html += `
+          <div class="fp-definition-item">
+            <span class="fp-part-of-speech">${d.partOfSpeech}</span>
+            ${d.definition}
+            ${d.example ? `<div class="fp-example">"${d.example}"</div>` : ""}
+          </div>
+        `;
+      });
+    } else {
+      html += `<div style="color:#94a3b8;margin-bottom:8px;">No direct dictionary definition found.</div>`;
+    }
+
+    if (data.synonyms.length > 0) {
+      html += `
+        <div class="fp-section-title">
+          <span>Synonyms</span>
+          <span style="font-size:10px;color:#94a3b8;">Click to copy / replace</span>
+        </div>
+        <div class="fp-synonyms-wrap">
+      `;
+      data.synonyms.slice(0, 16).forEach((s) => {
+        html += `<span class="fp-synonym-pill" data-syn="${s}">${s}</span>`;
+      });
+      html += `</div>`;
+    }
+
+    contentEl.innerHTML = html;
+
+    // Attach click listeners to synonyms
+    contentEl.querySelectorAll(".fp-synonym-pill").forEach((pill) => {
+      pill.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const syn = pill.dataset.syn;
+        navigator.clipboard.writeText(syn);
+        pill.textContent = `✓ Copied!`;
+        pill.style.background = "#10b981";
+        pill.style.borderColor = "#10b981";
+        pill.style.color = "#ffffff";
+
+        // If active field is focused, replace selected text
+        if (activeElement && isEditable(activeElement)) {
+          insertSingleCharacter(activeElement, syn);
+        }
+
+        setTimeout(() => {
+          pill.textContent = syn;
+          pill.style.background = "#1e293b";
+          pill.style.borderColor = "#3b82f6";
+          pill.style.color = "#93c5fd";
+        }, 1200);
+      });
+    });
+  }
+
+  // Audio pronunciation button click
+  shadow.querySelector("#fp-card-speaker").addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (selectedWord) pronounceWord(selectedWord);
+  });
+
+  // Close vocab modal
+  shadow.querySelector("#fp-card-close").addEventListener("click", (e) => {
+    e.stopPropagation();
+    vocabCard.style.display = "none";
+  });
+
+  // Handle Text Selection for Floating "Define" Badge
+  document.addEventListener("mouseup", (e) => {
+    if (!settings.vocabHelper) return;
+
+    // Ignore clicks inside our shadow DOM
+    if (host.contains(e.target)) return;
+
+    setTimeout(() => {
+      const selection = window.getSelection();
+      const text = selection ? selection.toString().trim() : "";
+
+      // Trigger on 1 to 3 words (typical vocabulary range)
+      if (text && text.length >= 2 && text.length <= 40 && !text.includes("\n")) {
+        const words = text.split(/\s+/);
+        if (words.length <= 3) {
+          try {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              const x = rect.left + rect.width / 2 - 30 + window.scrollX;
+              const y = rect.bottom + 6 + window.scrollY;
+
+              defineBadge.style.left = `${Math.max(10, x)}px`;
+              defineBadge.style.top = `${y}px`;
+              defineBadge.style.display = "flex";
+
+              defineBadge.onclick = (evt) => {
+                evt.stopPropagation();
+                showVocabModal(text, rect.left, rect.bottom + 10);
+              };
+              return;
+            }
+          } catch (err) {}
+        }
+      }
+
+      defineBadge.style.display = "none";
+    }, 60);
+  });
+
+  // Close floating card when clicking outside
+  document.addEventListener("mousedown", (e) => {
+    if (!host.contains(e.target)) {
+      vocabCard.style.display = "none";
+      defineBadge.style.display = "none";
+    }
+  });
 })();

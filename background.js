@@ -8,7 +8,11 @@ chrome.runtime.onInstalled.addListener(async () => {
     "customWPM",
     "baseDelay",
     "showFloatingIcon",
-    "naturalJitter"
+    "naturalJitter",
+    "alwaysActive",
+    "forceSelect",
+    "vocabHelper",
+    "stagedText"
   ]);
 
   const defaultSettings = {
@@ -17,7 +21,11 @@ chrome.runtime.onInstalled.addListener(async () => {
     customWPM: 60,
     baseDelay: 25, // ms
     showFloatingIcon: true,
-    naturalJitter: true
+    naturalJitter: true,
+    alwaysActive: false,
+    forceSelect: false,
+    vocabHelper: true,
+    stagedText: ""
   };
 
   const toSet = {};
@@ -30,7 +38,34 @@ chrome.runtime.onInstalled.addListener(async () => {
   if (Object.keys(toSet).length > 0) {
     await chrome.storage.local.set(toSet);
   }
+
+  // Create context menu for vocabulary lookup
+  if (chrome.contextMenus) {
+    chrome.contextMenus.removeAll(() => {
+      chrome.contextMenus.create({
+        id: "forcepaste_define",
+        title: "ForcePaste: Define & Synonyms for '%s'",
+        contexts: ["selection"]
+      });
+    });
+  }
 });
+
+// Handle Context Menu click
+if (chrome.contextMenus?.onClicked) {
+  chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+    if (info.menuItemId === "forcepaste_define" && tab?.id) {
+      try {
+        await chrome.tabs.sendMessage(tab.id, {
+          type: "SHOW_DEFINITION",
+          word: (info.selectionText || "").trim()
+        });
+      } catch (err) {
+        console.warn("Could not send definition command to tab:", err);
+      }
+    }
+  });
+}
 
 // Ensure offscreen document exists for Chromium browsers
 async function ensureOffscreenDocument() {

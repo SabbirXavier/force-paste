@@ -12,7 +12,7 @@
     }
 
     body {
-      width: 360px;
+      width: 380px;
       background: #f8fafc;
       color: #1e293b;
     }
@@ -65,9 +65,9 @@
 
     .tab-btn {
       flex: 1;
-      padding: 9px 0;
+      padding: 8px 0;
       text-align: center;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       color: #64748b;
       background: none;
@@ -75,6 +75,7 @@
       border-bottom: 2px solid transparent;
       cursor: pointer;
       transition: all 0.15s ease;
+      white-space: nowrap;
     }
 
     .tab-btn.active {
@@ -92,97 +93,49 @@
       display: block;
     }
 
-    /* Banner / Quick Actions */
-    .action-banner {
-      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-      color: #ffffff;
+    /* Cards & sections */
+    .section-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
       border-radius: 8px;
       padding: 12px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
-    }
-
-    .action-banner h4 {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .action-banner p {
-      font-size: 11px;
-      opacity: 0.9;
-      line-height: 1.35;
       margin-bottom: 10px;
     }
 
-    .banner-btn {
-      background: #ffffff;
-      color: #4f46e5;
-      border: none;
-      padding: 6px 12px;
-      font-size: 11px;
-      font-weight: 700;
-      border-radius: 6px;
-      cursor: pointer;
-      display: inline-flex;
+    .label-row {
+      font-size: 12px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 5px;
-      transition: background 0.1s ease;
     }
 
-    .banner-btn:hover {
-      background: #f1f5f9;
-    }
-
-    /* Restriction List */
-    .restriction-card {
+    .feature-toggle-card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
       padding: 10px 12px;
       margin-bottom: 8px;
-      transition: border-color 0.15s ease;
     }
 
-    .restriction-header {
+    .feature-toggle-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    .restriction-title {
+    .feature-toggle-title {
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       display: flex;
       align-items: center;
       gap: 6px;
+      color: #1e293b;
     }
 
-    .indicator-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #cbd5e1;
-    }
-
-    .indicator-dot.blocked {
-      background: #ef4444;
-      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
-    }
-
-    .indicator-dot.unblocked {
-      background: #10b981;
-      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-    }
-
-    .indicator-dot.clear {
-      background: #94a3b8;
-    }
-
-    .restriction-desc {
+    .feature-toggle-desc {
       font-size: 11px;
       color: #64748b;
       margin-top: 4px;
@@ -236,47 +189,73 @@
       transform: translateX(14px);
     }
 
-    /* Safety footer note */
-    .safety-box {
-      margin-top: 10px;
-      background: #f1f5f9;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 8px 10px;
-      display: flex;
-      gap: 7px;
-      font-size: 10.5px;
-      color: #475569;
-      line-height: 1.4;
-    }
-
-    .safety-box svg {
-      width: 14px;
-      height: 14px;
-      fill: #059669;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    /* Typer Tab Styles */
-    .section-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+    /* Action banner */
+    .action-banner {
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      color: #ffffff;
       border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 10px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
     }
 
-    .label-row {
-      font-size: 12px;
+    .action-banner h4 {
+      font-size: 12.5px;
       font-weight: 600;
-      color: #334155;
-      margin-bottom: 6px;
+      margin-bottom: 3px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      gap: 6px;
     }
 
+    .action-banner p {
+      font-size: 10.5px;
+      opacity: 0.9;
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+
+    .banner-btn {
+      background: #ffffff;
+      color: #4f46e5;
+      border: none;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .banner-btn:hover {
+      background: #f1f5f9;
+    }
+
+    /* Indicator dots */
+    .indicator-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #cbd5e1;
+    }
+
+    .indicator-dot.blocked {
+      background: #ef4444;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+    }
+
+    .indicator-dot.unblocked {
+      background: #10b981;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+    }
+
+    .indicator-dot.clear {
+      background: #94a3b8;
+    }
+
+    /* Inputs */
     select {
       width: 100%;
       padding: 6px 10px;
@@ -286,10 +265,6 @@
       outline: none;
       background: #ffffff;
       color: #1e293b;
-    }
-
-    select:focus {
-      border-color: #4f46e5;
     }
 
     .toggle-row {
@@ -319,7 +294,6 @@
       background: #f1f5f9;
       border: 1px solid #e2e8f0;
       border-radius: 6px;
-      transition: all 0.2s ease;
     }
 
     .wpm-header {
@@ -368,22 +342,123 @@
       outline: none;
     }
 
-    .wpm-controls input[type="number"]:focus {
-      border-color: #4f46e5;
+    /* Text Staging Styles */
+    .staging-textarea {
+      width: 100%;
+      height: 140px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 12px;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+      color: #1e293b;
+      background: #ffffff;
     }
 
-    .playground-input {
-      width: 100%;
+    .staging-textarea:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+    }
+
+    .staging-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+    }
+
+    .staging-counts {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .staging-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-action {
+      padding: 6px 12px;
+      font-size: 11.5px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.12s ease;
+    }
+
+    .btn-primary {
+      background: #4f46e5;
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: #4338ca;
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    /* Vocabulary tab styles */
+    .search-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .search-input {
+      flex: 1;
       padding: 7px 10px;
       font-size: 12px;
       border: 1px solid #cbd5e1;
       border-radius: 6px;
       outline: none;
-      margin-top: 4px;
     }
 
-    .playground-input:focus {
+    .search-input:focus {
       border-color: #4f46e5;
+    }
+
+    .vocab-result-box {
+      background: #181d24;
+      color: #f1f5f9;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      max-height: 240px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .syn-chip {
+      display: inline-block;
+      background: #1e293b;
+      color: #93c5fd;
+      border: 1px solid #3b82f6;
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-size: 10.5px;
+      font-weight: 600;
+      margin: 2px;
+      cursor: pointer;
+    }
+
+    .syn-chip:hover {
+      background: #3b82f6;
+      color: #ffffff;
     }
   </style>
 </head>
@@ -400,28 +475,62 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" data-tab="tab-shield">🛡️ Page Restrictions</button>
-    <button class="tab-btn" data-tab="tab-typer">⚡ ForcePaste Engine</button>
+    <button class="tab-btn active" data-tab="tab-shield">🛡️ Shield</button>
+    <button class="tab-btn" data-tab="tab-typer">⚡ ForcePaste</button>
+    <button class="tab-btn" data-tab="tab-staging">📝 Text Staging</button>
+    <button class="tab-btn" data-tab="tab-vocab">📖 Vocabulary</button>
   </div>
 
-  <!-- TAB 1: RESTRICTIONS & LOCAL UNBLOCKER -->
+  <!-- TAB 1: SHIELD & UNBLOCKER -->
   <div class="tab-content active" id="tab-shield">
+    <!-- Feature 2: Always Active Tab Toggle -->
+    <div class="feature-toggle-card">
+      <div class="feature-toggle-header">
+        <div class="feature-toggle-title">
+          <span>👁️</span> Always Active Tab (Always Visible)
+        </div>
+        <label class="switch-sm">
+          <input type="checkbox" id="toggle-always-active">
+          <span class="slider-sm"></span>
+        </label>
+      </div>
+      <div class="feature-toggle-desc">
+        Tricks the webpage into thinking this tab is permanently focused and visible. Prevents background pauses, stopped timers, or tab-switch tracking.
+      </div>
+    </div>
+
+    <!-- Feature 3: Force Select & Copy Toggle -->
+    <div class="feature-toggle-card">
+      <div class="feature-toggle-header">
+        <div class="feature-toggle-title">
+          <span>🔓</span> Force Enable Text Select & Copy
+        </div>
+        <label class="switch-sm">
+          <input type="checkbox" id="toggle-force-select">
+          <span class="slider-sm"></span>
+        </label>
+      </div>
+      <div class="feature-toggle-desc">
+        Unlocks text selection and copy across pages that block highlighting or right-click copying.
+      </div>
+    </div>
+
     <div class="action-banner">
       <h4>
-        <svg style="width:14px;height:14px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-        Safe Local Neutralizer
+        <svg style="width:13px;height:13px;fill:currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+        Page Restriction Neutralizer
       </h4>
-      <p id="summary-text">Scanning current page for blocked shortcuts, right-clicks, and clipboard blockers...</p>
+      <p id="summary-text">Scanning current page for blocked shortcuts and right-clicks...</p>
       <button class="banner-btn" id="btn-unblock-all">
-        <svg style="width:12px;height:12px;fill:currentColor" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+        <svg style="width:11px;height:11px;fill:currentColor" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
         Unblock All Safely
       </button>
     </div>
 
-    <!-- Restriction item: F12 -->
-    <div class="restriction-card" id="card-f12">
-      <div class="restriction-header">
-        <div class="restriction-title">
+    <!-- Restriction: F12 -->
+    <div class="feature-toggle-card">
+      <div class="feature-toggle-header">
+        <div class="feature-toggle-title">
           <span class="indicator-dot clear" id="dot-f12"></span>
           F12 & DevTools Shortcuts
         </div>
@@ -430,13 +539,13 @@
           <span class="slider-sm"></span>
         </label>
       </div>
-      <div class="restriction-desc" id="desc-f12">Checking for F12 (123) and Ctrl+Shift+I blockers...</div>
+      <div class="feature-toggle-desc" id="desc-f12">Checking for F12 (123) and Ctrl+Shift+I blockers...</div>
     </div>
 
-    <!-- Restriction item: Right click -->
-    <div class="restriction-card" id="card-contextmenu">
-      <div class="restriction-header">
-        <div class="restriction-title">
+    <!-- Restriction: Right click -->
+    <div class="feature-toggle-card">
+      <div class="feature-toggle-header">
+        <div class="feature-toggle-title">
           <span class="indicator-dot clear" id="dot-contextmenu"></span>
           Right-Click Context Menu
         </div>
@@ -445,13 +554,13 @@
           <span class="slider-sm"></span>
         </label>
       </div>
-      <div class="restriction-desc" id="desc-contextmenu">Checking for oncontextmenu cancel handlers...</div>
+      <div class="feature-toggle-desc" id="desc-contextmenu">Checking for oncontextmenu cancel handlers...</div>
     </div>
 
-    <!-- Restriction item: Copy/Paste -->
-    <div class="restriction-card" id="card-copypaste">
-      <div class="restriction-header">
-        <div class="restriction-title">
+    <!-- Restriction: Copy/Paste -->
+    <div class="feature-toggle-card">
+      <div class="feature-toggle-header">
+        <div class="feature-toggle-title">
           <span class="indicator-dot clear" id="dot-copypaste"></span>
           Copy / Cut / Paste Keystrokes
         </div>
@@ -460,52 +569,15 @@
           <span class="slider-sm"></span>
         </label>
       </div>
-      <div class="restriction-desc" id="desc-copypaste">Checking for Ctrl+C, Ctrl+V, oncopy, or onpaste blocks...</div>
-    </div>
-
-    <!-- Restriction item: Selection -->
-    <div class="restriction-card" id="card-selection">
-      <div class="restriction-header">
-        <div class="restriction-title">
-          <span class="indicator-dot clear" id="dot-selection"></span>
-          Text Selection & Highlighting
-        </div>
-        <label class="switch-sm">
-          <input type="checkbox" id="toggle-selection">
-          <span class="slider-sm"></span>
-        </label>
-      </div>
-      <div class="restriction-desc" id="desc-selection">Checking for user-select: none and onselectstart...</div>
-    </div>
-
-    <!-- Restriction item: Drag -->
-    <div class="restriction-card" id="card-drag">
-      <div class="restriction-header">
-        <div class="restriction-title">
-          <span class="indicator-dot clear" id="dot-drag"></span>
-          Drag & Drop Operations
-        </div>
-        <label class="switch-sm">
-          <input type="checkbox" id="toggle-drag">
-          <span class="slider-sm"></span>
-        </label>
-      </div>
-      <div class="restriction-desc" id="desc-drag">Checking for ondragstart cancel handlers...</div>
-    </div>
-
-    <div class="safety-box">
-      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-      <div>
-        <b>Zero Server Trace:</b> Neutralization uses Capture-Phase event interception before page scripts run. No cheat detection or telemetry is sent to provider servers.
-      </div>
+      <div class="feature-toggle-desc" id="desc-copypaste">Checking for Ctrl+C, Ctrl+V, oncopy, or onpaste blocks...</div>
     </div>
   </div>
 
-  <!-- TAB 2: FORCEPASTE ENGINE SETTINGS -->
+  <!-- TAB 2: FORCEPASTE ENGINE -->
   <div class="tab-content" id="tab-typer">
     <div class="section-card">
       <div class="label-row">
-        <span>Enable ForcePaste Helper</span>
+        <span>Enable ForcePaste Engine</span>
         <label class="switch-sm">
           <input type="checkbox" id="toggle-typer-enabled" checked>
           <span class="slider-sm"></span>
@@ -530,7 +602,6 @@
         <option value="instant">Instant (0ms, direct synthetic input)</option>
       </select>
 
-      <!-- Manual WPM Speed Controls -->
       <div class="custom-wpm-box" id="custom-wpm-box">
         <div class="wpm-header">
           <span class="wpm-title">Manual Typing Speed</span>
@@ -556,7 +627,67 @@
 
     <div class="section-card">
       <div class="label-row">Test Playground</div>
-      <input type="text" class="playground-input" id="test-field" placeholder="Copy text, click here & press Alt+V to test">
+      <input type="text" class="search-input" id="test-field" placeholder="Copy text, click here & press Alt+V to test">
+    </div>
+  </div>
+
+  <!-- TAB 3: TEXT STAGING / ARRANGER (Feature 1) -->
+  <div class="tab-content" id="tab-staging">
+    <div class="section-card">
+      <div class="label-row">
+        <span>Prepared Text Arranger</span>
+        <span class="staging-counts" id="staging-counts">0 words • 0 chars</span>
+      </div>
+      <p style="font-size:11px;color:#64748b;margin-bottom:8px;">
+        Paste or arrange long text here. Click <b>Type into Field</b> to auto-type into whichever field is focused on your page.
+      </p>
+      <textarea class="staging-textarea" id="staging-textarea" placeholder="Paste your long text here to stage and arrange..."></textarea>
+      <div class="staging-toolbar">
+        <div class="staging-actions">
+          <button class="btn-action btn-secondary" id="btn-paste-to-staging">📋 Paste Here</button>
+          <button class="btn-action btn-secondary" id="btn-clear-staging">🗑️ Clear</button>
+        </div>
+        <button class="btn-action btn-primary" id="btn-type-staged">⚡ Type into Field</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: VOCABULARY & THESAURUS HELPER (Feature 4) -->
+  <div class="tab-content" id="tab-vocab">
+    <div class="feature-toggle-card">
+      <div class="feature-toggle-header">
+        <div class="feature-toggle-title">
+          <span>📖</span> Highlight Define Badge
+        </div>
+        <label class="switch-sm">
+          <input type="checkbox" id="toggle-vocab-helper" checked>
+          <span class="slider-sm"></span>
+        </label>
+      </div>
+      <div class="feature-toggle-desc">
+        Shows a small floating "Define" pin when you highlight text on any webpage.
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="label-row">Toolbar Dictionary & Thesaurus</div>
+      <div class="search-row">
+        <input type="text" class="search-input" id="vocab-search-input" placeholder="Type any word (e.g. macroeconomics)...">
+        <button class="btn-action btn-primary" id="btn-vocab-search">Search</button>
+      </div>
+
+      <div class="vocab-result-box" id="vocab-result-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button class="banner-btn" style="padding:3px 8px;" id="btn-vocab-speak" title="Listen to pronunciation">🔊 Speak</button>
+            <b id="vocab-word-display" style="font-size:14px;color:#ffffff;">word</b>
+            <span id="vocab-phonetic-display" style="color:#94a3b8;font-size:11px;">/phonetic/</span>
+          </div>
+        </div>
+        <div id="vocab-definitions-display" style="line-height:1.4;margin-bottom:8px;"></div>
+        <div style="font-size:11px;font-weight:700;color:#60a5fa;margin-bottom:4px;">Synonyms (Click to copy):</div>
+        <div id="vocab-synonyms-display"></div>
+      </div>
     </div>
   </div>
 

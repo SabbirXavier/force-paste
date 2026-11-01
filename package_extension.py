@@ -6,10 +6,9 @@ def package():
     with open("manifest.json", "r", encoding="utf-8") as f:
         manifest = json.load(f)
 
-    version = manifest.get("version", "1.3.0")
+    version = manifest.get("version", "1.4.0")
     zip_filename = f"forcepaste-v{version}.zip"
 
-    # Exact files needed for production package
     include_files = [
         "manifest.json",
         "background.js",

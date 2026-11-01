@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "ForcePaste: Smart Paste & Key Shield",
-  "version": "1.3.0",
-  "description": "Force paste into blocked fields with human typing simulation. Safely restores F12, right-click, and shortcuts locally.",
+  "version": "1.4.0",
+  "description": "Force-paste with human typing, keep tabs always active, unlock text selection & copy, and look up instant definitions & synonyms.",
   "permissions": [
     "storage",
     "activeTab",
     "clipboardRead",
-    "offscreen"
+    "offscreen",
+    "contextMenus"
   ],
   "action": {
     "default_popup": "popup.html",
