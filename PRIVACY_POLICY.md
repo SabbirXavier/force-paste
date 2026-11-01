@@ -27,6 +27,12 @@ The Extension requests specific browser permissions solely to deliver its core f
 * **`offscreen`**:  
   Used to reliably execute asynchronous clipboard access in Manifest V3 without interrupting your active browsing session.
 
+* **`tabs`**:  
+  Used solely to display currently open tabs in the Always Active Tab drawer so you can view, select, and manage which tabs stay active in the background, and to switch window/tab focus on click. Tab titles and URLs are processed strictly locally in your browser and are never transmitted or stored.
+
+* **`contextMenus`**:  
+  Used solely to create browser right-click options for looking up definitions and extracting text from protected webpage elements.
+
 ---
 
 ### 3. No Remote Servers & No Third-Party Analytics
