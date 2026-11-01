@@ -879,6 +879,92 @@
     if (hideTimeout) clearTimeout(hideTimeout);
   });
 
+  // Cadence-Preserving Keystroke Dynamics Engine
+  // Generates randomized human-like per-character delays (50ms - 500ms) while exactly maintaining overall target WPM
+  function calculateHumanDelays(text, targetWpm, naturalJitter = true) {
+    if (!text || text.length === 0) return [];
+    const N = text.length;
+
+    // 1 word = 5 characters. Total target duration = (N / 5) * (60000 / targetWpm) = (N * 12000) / targetWpm
+    const targetAverageDelay = Math.round(12000 / Math.max(10, Math.min(600, targetWpm)));
+    const totalTargetDuration = N * targetAverageDelay;
+
+    if (!naturalJitter) {
+      return new Array(N).fill(targetAverageDelay);
+    }
+
+    const weights = new Array(N);
+    for (let i = 0; i < N; i++) {
+      const char = text[i];
+      const prevChar = i > 0 ? text[i - 1] : "";
+
+      // 3-sample central limit distribution (natural bell curve around 1.0)
+      const r1 = Math.random(), r2 = Math.random(), r3 = Math.random();
+      let weight = (r1 + r2 + r3) / 1.5;
+      weight = Math.max(0.35, Math.min(2.2, weight));
+
+      // Natural pauses for punctuation and thought transitions
+      if ([".", "!", "?", "\n"].includes(char)) {
+        weight *= 2.3; // End of sentence cognitive pause
+      } else if ([",", ";", ":", "-", "—"].includes(char)) {
+        weight *= 1.7; // Clause boundary pause
+      } else if (char === " ") {
+        weight *= 1.35; // Inter-word transition
+      }
+
+      // Reaching for Shift / numbers / complex symbols
+      if (/[A-Z]/.test(char)) {
+        weight *= 1.3;
+      } else if (/[0-9]/.test(char)) {
+        weight *= 1.25;
+      } else if (/[@#$%^&*()_+={}\[\]|\\<>\/~`"']/.test(char)) {
+        weight *= 1.45;
+      }
+
+      // Sentence inception pause (first character after sentence end)
+      if (i > 0 && [".", "!", "?", "\n"].includes(prevChar) && char !== " ") {
+        weight *= 1.6;
+      }
+
+      // Random micro-hesitation or thinking pause every ~20 characters
+      if (i > 0 && i % 20 === 0 && Math.random() < 0.35) {
+        weight *= 1.8;
+      }
+
+      // Fast digraphs: consecutive common lowercase letters in finger flow
+      if (/[a-z]/.test(char) && /[a-z]/.test(prevChar)) {
+        weight *= 0.85;
+      }
+
+      weights[i] = weight;
+    }
+
+    // Normalize weights to match target total duration
+    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+    const scalingFactor = totalTargetDuration / totalWeight;
+    let rawDelays = weights.map((w) => w * scalingFactor);
+
+    // Physiological human boundaries (50ms - 500ms for typical speeds)
+    const minDelay = Math.max(15, Math.min(50, Math.round(targetAverageDelay * 0.25)));
+    const maxDelay = Math.max(180, Math.min(550, Math.round(targetAverageDelay * 2.5)));
+
+    let sumDelays = 0;
+    const clampedDelays = new Array(N);
+    for (let i = 0; i < N; i++) {
+      clampedDelays[i] = Math.max(minDelay, Math.min(maxDelay, rawDelays[i]));
+      sumDelays += clampedDelays[i];
+    }
+
+    // Redistribute residual clamping delta to maintain exact target average WPM
+    const diff = totalTargetDuration - sumDelays;
+    const perCharAdjustment = diff / N;
+    for (let i = 0; i < N; i++) {
+      clampedDelays[i] = Math.max(minDelay, Math.round(clampedDelays[i] + perCharAdjustment));
+    }
+
+    return clampedDelays;
+  }
+
   // Typing engine
   async function typeTextIntoElement(target, text) {
     if (!target || !text) return;
@@ -892,40 +978,27 @@
     try {
       target.focus();
 
-      let baseDelay = 200;
-      const wpm = parseInt(settings.customWPM, 10) || 60;
-
-      if (settings.speedMode === "instant") {
-        baseDelay = 0;
-      } else if (settings.speedMode === "custom") {
-        baseDelay = Math.round(12000 / Math.max(10, Math.min(600, wpm)));
-      } else if (settings.speedMode === "fast") {
-        baseDelay = 12;
+      let effectiveWpm = 60;
+      if (settings.speedMode === "custom") {
+        effectiveWpm = parseInt(settings.customWPM, 10) || 60;
       } else if (settings.speedMode === "human") {
-        baseDelay = 220;
+        effectiveWpm = 50; // Human Average (~50 WPM)
+      } else if (settings.speedMode === "fast") {
+        effectiveWpm = 150; // Fast (~150 WPM)
       }
 
-      for (let i = 0; i < text.length; i++) {
-        if (abortTyping) break;
-
-        const char = text[i];
-        insertSingleCharacter(target, char);
-
-        if (settings.speedMode === "instant") continue;
-
-        let delay = baseDelay;
-        if (settings.naturalJitter) {
-          const variance = baseDelay * 0.25;
-          const jitter = (Math.random() * variance * 2) - variance;
-          delay = Math.max(5, delay + jitter);
-
-          if (char === " ") delay += baseDelay * 0.2;
-          else if ([".", ",", "!", "?", ";", ":", "\n"].includes(char)) delay += baseDelay * 0.5;
-
-          if (i > 0 && i % 25 === 0 && Math.random() > 0.4) delay += baseDelay * 0.8;
+      if (settings.speedMode === "instant") {
+        for (let i = 0; i < text.length; i++) {
+          if (abortTyping) break;
+          insertSingleCharacter(target, text[i]);
         }
-
-        await new Promise((r) => setTimeout(r, Math.max(5, delay)));
+      } else {
+        const delays = calculateHumanDelays(text, effectiveWpm, settings.naturalJitter);
+        for (let i = 0; i < text.length; i++) {
+          if (abortTyping) break;
+          insertSingleCharacter(target, text[i]);
+          await new Promise((r) => setTimeout(r, delays[i]));
+        }
       }
 
       target.dispatchEvent(new Event("change", { bubbles: true, composed: true }));

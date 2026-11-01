@@ -156,7 +156,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function updateWpmDisplay(wpm) {
     const delay = Math.round(12000 / wpm);
-    wpmStats.textContent = `${wpm} WPM (~${delay}ms/char)`;
+    wpmStats.textContent = `${wpm} WPM (~${delay}ms/char, randomized 50-500ms)`;
     rangeWpm.value = Math.min(300, Math.max(15, wpm));
     numWpm.value = wpm;
   }
@@ -861,6 +861,60 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // Cadence-Preserving Keystroke Dynamics Engine for Playground
+  function calculateHumanDelays(text, targetWpm, naturalJitter = true) {
+    if (!text || text.length === 0) return [];
+    const N = text.length;
+    const targetAverageDelay = Math.round(12000 / Math.max(10, Math.min(600, targetWpm)));
+    const totalTargetDuration = N * targetAverageDelay;
+
+    if (!naturalJitter) return new Array(N).fill(targetAverageDelay);
+
+    const weights = new Array(N);
+    for (let i = 0; i < N; i++) {
+      const char = text[i];
+      const prevChar = i > 0 ? text[i - 1] : "";
+      const r1 = Math.random(), r2 = Math.random(), r3 = Math.random();
+      let weight = (r1 + r2 + r3) / 1.5;
+      weight = Math.max(0.35, Math.min(2.2, weight));
+
+      if (['.', '!', '?', '\n'].includes(char)) weight *= 2.3;
+      else if ([',', ';', ':', '-', '—'].includes(char)) weight *= 1.7;
+      else if (char === ' ') weight *= 1.35;
+
+      if (/[A-Z]/.test(char)) weight *= 1.3;
+      else if (/[0-9]/.test(char)) weight *= 1.25;
+      else if (/[@#$%^&*()_+={}\[\]|\\<>\/~`"']/.test(char)) weight *= 1.45;
+
+      if (i > 0 && ['.', '!', '?', '\n'].includes(prevChar) && char !== ' ') weight *= 1.6;
+      if (i > 0 && i % 20 === 0 && Math.random() < 0.35) weight *= 1.8;
+      if (/[a-z]/.test(char) && /[a-z]/.test(prevChar)) weight *= 0.85;
+
+      weights[i] = weight;
+    }
+
+    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+    const scalingFactor = totalTargetDuration / totalWeight;
+    let rawDelays = weights.map((w) => w * scalingFactor);
+
+    const minDelay = Math.max(15, Math.min(50, Math.round(targetAverageDelay * 0.25)));
+    const maxDelay = Math.max(180, Math.min(550, Math.round(targetAverageDelay * 2.5)));
+
+    let sumDelays = 0;
+    const clampedDelays = new Array(N);
+    for (let i = 0; i < N; i++) {
+      clampedDelays[i] = Math.max(minDelay, Math.min(maxDelay, rawDelays[i]));
+      sumDelays += clampedDelays[i];
+    }
+
+    const diff = totalTargetDuration - sumDelays;
+    const perCharAdjustment = diff / N;
+    for (let i = 0; i < N; i++) {
+      clampedDelays[i] = Math.max(minDelay, Math.round(clampedDelays[i] + perCharAdjustment));
+    }
+    return clampedDelays;
+  }
+
   // Playground simulation inside popup
   testField.addEventListener("keydown", async (e) => {
     if (e.altKey && (e.key === "v" || e.key === "V")) {
@@ -872,26 +926,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         testField.value = "";
         const mode = selectSpeed.value;
         const jitter = toggleJitter.checked;
-        const wpm = parseInt(numWpm.value, 10) || 60;
+        let effectiveWpm = parseInt(numWpm.value, 10) || 60;
+        if (mode === "human") effectiveWpm = 50;
+        if (mode === "fast") effectiveWpm = 150;
 
-        let baseDelay = Math.round(12000 / wpm);
-        if (mode === "fast") baseDelay = 12;
-        if (mode === "human") baseDelay = 220;
+        if (mode === "instant") {
+          testField.value = text;
+          return;
+        }
 
+        const delays = calculateHumanDelays(text, effectiveWpm, jitter);
         for (let i = 0; i < text.length; i++) {
-          const char = text[i];
-          testField.value += char;
-
-          if (mode === "instant") continue;
-
-          let delay = baseDelay;
-          if (jitter) {
-            const variance = baseDelay * 0.25;
-            delay += Math.random() * variance * 2 - variance;
-            if (char === " ") delay += baseDelay * 0.2;
-            if ([".", ",", "!", "?"].includes(char)) delay += baseDelay * 0.5;
-          }
-          await new Promise((r) => setTimeout(r, Math.max(5, delay)));
+          testField.value += text[i];
+          await new Promise((r) => setTimeout(r, delays[i]));
         }
       } catch (err) {}
     }
