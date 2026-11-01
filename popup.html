@@ -345,7 +345,7 @@
     /* Text Staging Styles */
     .staging-textarea {
       width: 100%;
-      height: 140px;
+      height: 95px;
       border: 1.5px solid #cbd5e1;
       border-radius: 8px;
       padding: 10px;
@@ -477,7 +477,6 @@
   <div class="tabs">
     <button class="tab-btn active" data-tab="tab-shield">🛡️ Shield</button>
     <button class="tab-btn" data-tab="tab-typer">⚡ ForcePaste</button>
-    <button class="tab-btn" data-tab="tab-staging">📝 Text Staging</button>
     <button class="tab-btn" data-tab="tab-vocab">📖 Vocabulary</button>
   </div>
 
@@ -635,6 +634,25 @@
       </div>
     </div>
 
+    <!-- Prepared Text Arranger & Staging -->
+    <div class="section-card">
+      <div class="label-row">
+        <span>📝 Prepared Text Arranger</span>
+        <span class="staging-counts" id="staging-counts">0 words • 0 chars</span>
+      </div>
+      <p style="font-size:11px;color:#64748b;margin-bottom:8px;">
+        Paste or arrange text here. Click <b>⚡ Type into Field</b> to auto-type into whichever field is focused.
+      </p>
+      <textarea class="staging-textarea" id="staging-textarea" placeholder="Paste or arrange your text here to stage..."></textarea>
+      <div class="staging-toolbar">
+        <div class="staging-actions">
+          <button class="btn-action btn-secondary" id="btn-paste-to-staging">📋 Paste Here</button>
+          <button class="btn-action btn-secondary" id="btn-clear-staging">🗑️ Clear</button>
+        </div>
+        <button class="btn-action btn-primary" id="btn-type-staged">⚡ Type into Field</button>
+      </div>
+    </div>
+
     <div class="section-card">
       <div class="label-row">Keyboard Shortcuts</div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
@@ -657,28 +675,7 @@
     </div>
   </div>
 
-  <!-- TAB 3: TEXT STAGING / ARRANGER (Feature 1) -->
-  <div class="tab-content" id="tab-staging">
-    <div class="section-card">
-      <div class="label-row">
-        <span>Prepared Text Arranger</span>
-        <span class="staging-counts" id="staging-counts">0 words • 0 chars</span>
-      </div>
-      <p style="font-size:11px;color:#64748b;margin-bottom:8px;">
-        Paste or arrange long text here. Click <b>Type into Field</b> to auto-type into whichever field is focused on your page.
-      </p>
-      <textarea class="staging-textarea" id="staging-textarea" placeholder="Paste your long text here to stage and arrange..."></textarea>
-      <div class="staging-toolbar">
-        <div class="staging-actions">
-          <button class="btn-action btn-secondary" id="btn-paste-to-staging">📋 Paste Here</button>
-          <button class="btn-action btn-secondary" id="btn-clear-staging">🗑️ Clear</button>
-        </div>
-        <button class="btn-action btn-primary" id="btn-type-staged">⚡ Type into Field</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- TAB 4: VOCABULARY & THESAURUS HELPER (Feature 4) -->
+  <!-- TAB 3: VOCABULARY & THESAURUS HELPER (Feature 4) -->
   <div class="tab-content" id="tab-vocab">
     <div class="feature-toggle-card">
       <div class="feature-toggle-header">
