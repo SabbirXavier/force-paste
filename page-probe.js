@@ -32,7 +32,11 @@
         }
       }
     }
-    return origRemoveAllRanges.apply(this, arguments);
+    try {
+      return origRemoveAllRanges.apply(this, arguments);
+    } catch (e) {
+      return undefined;
+    }
   };
 
   if (origEmpty) {
@@ -45,7 +49,11 @@
           }
         }
       }
-      return origEmpty.apply(this, arguments);
+      try {
+        return origEmpty.apply(this, arguments);
+      } catch (e) {
+        return undefined;
+      }
     };
   }
 
@@ -65,11 +73,16 @@
         }
       }
     }
-    return origPreventDefault.apply(this, arguments);
+    try {
+      return origPreventDefault.apply(this, arguments);
+    } catch (e) {
+      return undefined;
+    }
   };
 
   // 3. Property descriptor protections for event blockers
   function protectEventProperty(obj, prop) {
+    if (!obj) return;
     try {
       let internalVal = null;
       Object.defineProperty(obj, prop, {
@@ -95,6 +108,13 @@
   protectEventProperty(Document.prototype, "onmousedown");
   protectEventProperty(Window.prototype, "onselectstart");
   protectEventProperty(Window.prototype, "oncopy");
+  if (typeof HTMLElement !== "undefined" && HTMLElement.prototype) {
+    protectEventProperty(HTMLElement.prototype, "onselectstart");
+    protectEventProperty(HTMLElement.prototype, "oncopy");
+    protectEventProperty(HTMLElement.prototype, "oncut");
+    protectEventProperty(HTMLElement.prototype, "onmousedown");
+    protectEventProperty(HTMLElement.prototype, "oncontextmenu");
+  }
 
   // Detected restrictions state
   const detectedRestrictions = {
@@ -199,7 +219,15 @@
       }
     } catch (e) {}
 
-    return originalAddEventListener.apply(this, arguments);
+    try {
+      return originalAddEventListener.apply(this, arguments);
+    } catch (err) {
+      try {
+        return originalAddEventListener.call(this, type, listener, options);
+      } catch (err2) {
+        return undefined;
+      }
+    }
   };
 
   // 2. Scan property handlers

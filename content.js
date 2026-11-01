@@ -287,8 +287,13 @@
     }
 
     .ht-btn-clip {
-      background: #e0e7ff;
-      color: #4338ca;
+      background: #ede9fe;
+      color: #5b21b6;
+      border: 1px solid #ddd6fe;
+    }
+
+    .ht-btn-clip:hover {
+      background: #ddd6fe;
     }
 
     .ht-btn-clear {
@@ -297,13 +302,22 @@
     }
 
     .ht-btn-cancel {
-      background: #f3f4f6;
-      color: #374151;
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+    }
+
+    .ht-btn-cancel:hover {
+      background: #e2e8f0;
     }
 
     .ht-btn-confirm {
-      background: #4f46e5;
+      background: #582be8;
       color: #ffffff;
+    }
+
+    .ht-btn-confirm:hover {
+      background: #4c1d95;
     }
 
     /* Vocabulary Helper UI */
@@ -357,6 +371,18 @@
       pointer-events: auto;
     }
 
+    .fp-card-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .fp-oxford-label {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
     .fp-card-header {
       display: flex;
       align-items: center;
@@ -404,6 +430,16 @@
       color: #ffffff;
     }
 
+    .fp-lang-badge {
+      font-size: 9.5px;
+      font-weight: 700;
+      background: #3b82f6;
+      color: #ffffff;
+      padding: 1px 6px;
+      border-radius: 4px;
+      text-transform: capitalize;
+    }
+
     .fp-word-phonetic {
       font-size: 11px;
       color: #94a3b8;
@@ -418,6 +454,14 @@
       cursor: pointer;
       line-height: 1;
       padding: 4px;
+    }
+
+    .fp-trans-box {
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      background: #1e293b;
+      border-radius: 6px;
+      border-left: 3px solid #3b82f6;
     }
 
     .fp-section-title {
@@ -483,6 +527,32 @@
       color: #ffffff;
       transform: translateY(-1px);
     }
+
+    .fp-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #2d3748;
+    }
+
+    .fp-see-all-btn {
+      background: #27272a;
+      color: #e4e4e7;
+      border: 1px solid #3f3f46;
+      border-radius: 14px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s ease;
+    }
+
+    .fp-see-all-btn:hover {
+      background: #3f3f46;
+      color: #ffffff;
+    }
   `;
 
   // UI elements inside shadow root
@@ -514,16 +584,13 @@
   dialogOverlay.innerHTML = `
     <div id="ht-dialog">
       <h3>
-        <svg style="width:16px;height:16px;fill:#4f46e5;" viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4 0.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
-        ForcePaste - Set Text to Type
+        <svg style="width:16px;height:16px;fill:#6366f1;" viewBox="0 0 24 24"><path d="M19 2h-4.18C14.4 0.84 13.3 0 12 0c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"/></svg>
+        ForcePaste - Auto-Type Text
       </h3>
-      <p>Set your text below once. From then on, clicking the <b>Paste</b> icon will immediately type it without reopening this pop-up!</p>
-      <textarea id="ht-modal-textarea" placeholder="Paste or type text here (Ctrl+V works)..."></textarea>
+      <p style="margin:0 0 8px 0;font-size:11.5px;color:#475569;">Paste text below (Ctrl+V works here) or click <b>Paste from Clipboard</b>:</p>
+      <textarea id="ht-modal-textarea" placeholder="Paste text here (Ctrl+V works)..."></textarea>
       <div class="ht-dialog-actions">
-        <div style="display:flex;gap:6px;">
-          <button class="ht-btn-clip" id="ht-btn-fetch-clip" title="Paste from clipboard">📋 Paste Clip</button>
-          <button class="ht-btn-clear" id="ht-btn-clear-stored" title="Clear stored text">🗑️ Reset</button>
-        </div>
+        <button class="ht-btn-clip" id="ht-btn-fetch-clip" title="Paste from clipboard">📋 Paste from Clipboard</button>
         <div class="ht-dialog-actions-right">
           <button class="ht-btn-cancel" id="ht-btn-cancel-modal">Cancel</button>
           <button class="ht-btn-confirm" id="ht-btn-confirm-modal">Start Typing</button>
@@ -548,20 +615,30 @@
   const vocabCard = document.createElement("div");
   vocabCard.id = "fp-vocab-card";
   vocabCard.innerHTML = `
+    <div class="fp-card-topbar">
+      <span class="fp-oxford-label">Definitions from <u>Oxford Languages</u></span>
+      <button class="fp-close-btn" id="fp-card-close" title="Close">&times;</button>
+    </div>
     <div class="fp-card-header">
       <div class="fp-card-title-row">
         <button class="fp-speaker-btn" title="Pronounce word" id="fp-card-speaker">
           <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
         </button>
         <div>
-          <span class="fp-word-title" id="fp-card-word">word</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="fp-word-title" id="fp-card-word">word</span>
+            <span class="fp-lang-badge" id="fp-card-lang" style="display:none;"></span>
+          </div>
           <span class="fp-word-phonetic" id="fp-card-phonetic">/phonetic/</span>
         </div>
       </div>
-      <button class="fp-close-btn" id="fp-card-close">&times;</button>
     </div>
     <div id="fp-card-content">
-      <div style="color:#94a3b8;padding:8px 0;">Looking up definitions & synonyms...</div>
+      <div style="color:#94a3b8;padding:8px 0;">Looking up definitions & translations...</div>
+    </div>
+    <div class="fp-card-footer">
+      <button class="fp-see-all-btn" id="fp-card-see-all">See all definitions</button>
+      <span style="font-size:10px;color:#64748b;font-style:italic;">ForcePaste Dictionary</span>
     </div>
   `;
 
@@ -984,12 +1061,14 @@
       }
     };
 
-    clearBtn.onclick = (e) => {
-      e.stopPropagation();
-      textarea.value = "";
-      settings.lastStagedText = "";
-      chrome.storage.local.set({ lastStagedText: "" });
-    };
+    if (clearBtn) {
+      clearBtn.onclick = (e) => {
+        e.stopPropagation();
+        textarea.value = "";
+        settings.lastStagedText = "";
+        chrome.storage.local.set({ lastStagedText: "", stagedText: "" });
+      };
+    }
 
     cancelBtn.onclick = (e) => {
       e.stopPropagation();
@@ -1003,7 +1082,7 @@
       if (text && text.length > 0) {
         // Remember this text so future clicks paste directly without opening pop-up!
         settings.lastStagedText = text;
-        chrome.storage.local.set({ lastStagedText: text });
+        chrome.storage.local.set({ lastStagedText: text, stagedText: text });
         if (target) {
           typeTextIntoElement(target, text);
         }
@@ -1142,33 +1221,89 @@
     true
   );
 
+  // Capture-phase event protection against anti-copy scripts and exams
+  ["copy", "cut", "selectstart", "contextmenu"].forEach((evtType) => {
+    window.addEventListener(
+      evtType,
+      (e) => {
+        if (settings.forceSelect || settings.autoUnblock) {
+          e.stopPropagation();
+        }
+      },
+      true
+    );
+  });
+
   // =========================================================================
-  // VOCABULARY / THESAURUS HELPER IMPLEMENTATION
+  // UNIVERSAL MULTI-LANGUAGE VOCABULARY & TRANSLATION ENGINE
   // =========================================================================
 
+  const LANG_MAP = {
+    en: { name: "English", bcp47: "en-US" },
+    as: { name: "Assamese", bcp47: "as-IN" },
+    bn: { name: "Bengali", bcp47: "bn-IN" },
+    hi: { name: "Hindi", bcp47: "hi-IN" },
+    es: { name: "Spanish", bcp47: "es-ES" },
+    fr: { name: "French", bcp47: "fr-FR" },
+    de: { name: "German", bcp47: "de-DE" },
+    it: { name: "Italian", bcp47: "it-IT" },
+    pt: { name: "Portuguese", bcp47: "pt-BR" },
+    ru: { name: "Russian", bcp47: "ru-RU" },
+    ja: { name: "Japanese", bcp47: "ja-JP" },
+    ko: { name: "Korean", bcp47: "ko-KR" },
+    zh: { name: "Chinese", bcp47: "zh-CN" },
+    ar: { name: "Arabic", bcp47: "ar-SA" },
+    ta: { name: "Tamil", bcp47: "ta-IN" },
+    te: { name: "Telugu", bcp47: "te-IN" },
+    ur: { name: "Urdu", bcp47: "ur-PK" },
+    gu: { name: "Gujarati", bcp47: "gu-IN" },
+    mr: { name: "Marathi", bcp47: "mr-IN" },
+    kn: { name: "Kannada", bcp47: "kn-IN" },
+    ml: { name: "Malayalam", bcp47: "ml-IN" },
+    pa: { name: "Punjabi", bcp47: "pa-IN" },
+    ne: { name: "Nepali", bcp47: "ne-NP" },
+    id: { name: "Indonesian", bcp47: "id-ID" },
+    vi: { name: "Vietnamese", bcp47: "vi-VN" },
+    tr: { name: "Turkish", bcp47: "tr-TR" }
+  };
+
   let currentAudioUrl = null;
+  let currentWordLang = "en";
 
   function pronounceWord(word) {
     if (currentAudioUrl) {
       const audio = new Audio(currentAudioUrl);
-      audio.play().catch(() => speakWord(word));
+      audio.play().catch(() => speakWord(word, currentWordLang));
     } else {
-      speakWord(word);
+      speakWord(word, currentWordLang);
     }
   }
 
-  function speakWord(word) {
+  function speakWord(word, langCode = "en") {
     if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(word);
-      utter.lang = "en-US";
-      window.speechSynthesis.speak(utter);
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(word);
+        const langConfig = LANG_MAP[langCode] || { bcp47: "en-US" };
+        utter.lang = langConfig.bcp47 || "en-US";
+        const voices = window.speechSynthesis.getVoices();
+        if (voices && voices.length > 0) {
+          const matchedVoice = voices.find((v) =>
+            v.lang.toLowerCase().startsWith((langCode || "en").toLowerCase().slice(0, 2))
+          );
+          if (matchedVoice) utter.voice = matchedVoice;
+        }
+        window.speechSynthesis.speak(utter);
+      } catch (e) {}
     }
   }
 
   async function fetchWordDetails(word) {
     let result = {
       word: word,
+      detectedLang: "en",
+      langName: "English",
+      translation: "",
       phonetic: "",
       audioUrl: null,
       definitions: [],
@@ -1176,36 +1311,82 @@
     };
 
     try {
-      const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          const entry = data[0];
-          result.phonetic = entry.phonetic || (entry.phonetics?.find((p) => p.text)?.text) || "";
-          result.audioUrl = entry.phonetics?.find((p) => p.audio)?.audio || null;
+      // 1. Google Multi-Language & Translation API
+      const transRes = await fetch(
+        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(word)}`
+      );
+      if (transRes.ok) {
+        const tData = await transRes.json();
+        const detected = tData[2] || "en";
+        result.detectedLang = detected;
+        result.langName = LANG_MAP[detected]?.name || detected.toUpperCase();
 
-          if (entry.meanings) {
-            entry.meanings.forEach((m) => {
-              const part = m.partOfSpeech || "";
-              m.definitions?.slice(0, 2).forEach((d) => {
+        if (tData[0] && tData[0][0]) {
+          result.translation = tData[0][0][0] || "";
+        }
+        if (tData[0] && tData[0][1]) {
+          result.phonetic = tData[0][1][3] || "";
+        }
+
+        if (Array.isArray(tData[1])) {
+          tData[1].forEach((item) => {
+            if (item && item[0] && Array.isArray(item[1])) {
+              item[1].slice(0, 3).forEach((meaning) => {
                 result.definitions.push({
-                  partOfSpeech: part,
-                  definition: d.definition,
-                  example: d.example || ""
+                  partOfSpeech: item[0],
+                  definition: meaning,
+                  example: ""
                 });
               });
-              if (m.synonyms) {
-                result.synonyms.push(...m.synonyms);
-              }
-            });
-          }
+              result.synonyms.push(...item[1]);
+            }
+          });
         }
       }
     } catch (e) {}
 
-    if (result.synonyms.length < 5) {
+    // 2. Query Oxford Dictionary API (for English or translation)
+    const lookupTarget = result.detectedLang === "en" ? word : result.translation;
+    if (lookupTarget) {
       try {
-        const dmRes = await fetch(`https://api.datamuse.com/words?rel_syn=${encodeURIComponent(word)}&max=15`);
+        const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(lookupTarget)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const entry = data[0];
+            if (!result.phonetic) {
+              result.phonetic = entry.phonetic || (entry.phonetics?.find((p) => p.text)?.text) || "";
+            }
+            result.audioUrl = entry.phonetics?.find((p) => p.audio)?.audio || null;
+
+            if (entry.meanings) {
+              const oxfordDefs = [];
+              entry.meanings.forEach((m) => {
+                const part = m.partOfSpeech || "";
+                m.definitions?.slice(0, 2).forEach((d) => {
+                  oxfordDefs.push({
+                    partOfSpeech: part,
+                    definition: d.definition,
+                    example: d.example || ""
+                  });
+                });
+                if (m.synonyms) {
+                  result.synonyms.push(...m.synonyms);
+                }
+              });
+              if (oxfordDefs.length > 0) {
+                result.definitions = oxfordDefs;
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 3. Supplement synonyms via Datamuse
+    if (result.synonyms.length < 5 && lookupTarget) {
+      try {
+        const dmRes = await fetch(`https://api.datamuse.com/words?rel_syn=${encodeURIComponent(lookupTarget)}&max=15`);
         if (dmRes.ok) {
           const dmData = await dmRes.json();
           if (Array.isArray(dmData)) {
@@ -1225,14 +1406,17 @@
     mountHost();
     selectedWord = word;
     currentAudioUrl = null;
+    currentWordLang = "en";
 
     const wordEl = shadow.querySelector("#fp-card-word");
+    const langBadgeEl = shadow.querySelector("#fp-card-lang");
     const phoneticEl = shadow.querySelector("#fp-card-phonetic");
     const contentEl = shadow.querySelector("#fp-card-content");
 
     wordEl.textContent = word;
+    if (langBadgeEl) langBadgeEl.style.display = "none";
     phoneticEl.textContent = "...";
-    contentEl.innerHTML = `<div style="color:#94a3b8;padding:12px 0;">Searching Oxford definitions & synonyms...</div>`;
+    contentEl.innerHTML = `<div style="color:#94a3b8;padding:12px 0;">Searching Oxford definitions & translations...</div>`;
 
     const modalWidth = 330;
     let left = Math.min(Math.max(10, x), window.innerWidth - modalWidth - 20) + window.scrollX;
@@ -1244,10 +1428,26 @@
     defineBadge.style.display = "none";
 
     const data = await fetchWordDetails(word);
-    phoneticEl.textContent = data.phonetic || "";
+    currentWordLang = data.detectedLang || "en";
+    phoneticEl.textContent = data.phonetic ? `/${data.phonetic}/` : "";
     currentAudioUrl = data.audioUrl;
 
+    if (langBadgeEl && data.detectedLang !== "en") {
+      langBadgeEl.textContent = data.langName;
+      langBadgeEl.style.display = "inline-block";
+    }
+
     let html = "";
+
+    // If foreign language, show meaning banner
+    if (data.detectedLang !== "en" && data.translation && data.translation.toLowerCase() !== word.toLowerCase()) {
+      html += `
+        <div class="fp-trans-box">
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:2px;">English Translation</div>
+          <div style="font-size:13px;font-weight:700;color:#60a5fa;">${data.translation}</div>
+        </div>
+      `;
+    }
 
     if (data.definitions.length > 0) {
       html += `<div class="fp-section-title"><span>Definitions</span><span style="font-size:10px;color:#94a3b8;">${data.definitions.length} found</span></div>`;
@@ -1314,6 +1514,17 @@
     vocabCard.style.display = "none";
   });
 
+  const seeAllBtn = shadow.querySelector("#fp-card-see-all");
+  if (seeAllBtn) {
+    seeAllBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      vocabCard.style.display = "none";
+      try {
+        chrome.runtime.sendMessage({ type: "OPEN_VOCABULARY", word: selectedWord });
+      } catch (err) {}
+    });
+  }
+
   document.addEventListener("mouseup", (e) => {
     if (!settings.vocabHelper || settings.ghostMode) return;
     if (host.contains(e.target)) return;
@@ -1322,9 +1533,9 @@
       const selection = window.getSelection();
       const text = selection ? selection.toString().trim() : "";
 
-      if (text && text.length >= 2 && text.length <= 40 && !text.includes("\n")) {
+      if (text && text.length >= 2 && text.length <= 60 && !text.includes("\n")) {
         const words = text.split(/\s+/);
-        if (words.length <= 3) {
+        if (words.length <= 4) {
           try {
             const range = selection.getRangeAt(0);
             const rect = range.getBoundingClientRect();
