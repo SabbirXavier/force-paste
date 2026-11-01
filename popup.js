@@ -127,6 +127,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   toggleForceSelect.addEventListener("change", async () => {
     const val = toggleForceSelect.checked;
     await chrome.storage.local.set({ forceSelect: val });
+    if (toggles.copypaste && val) {
+      toggles.copypaste.checked = true;
+    }
     if (activeTabId) {
       chrome.tabs.sendMessage(activeTabId, { type: "TOGGLE_UNBLOCK", key: "selection", unblock: val });
     }

@@ -5,17 +5,17 @@
 **The Universal Browser Freedom & Productivity Suite for All Major Browsers**
 
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-4f46e5.svg?style=flat-square)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![Version](https://img.shields.io/badge/Version-1.4.1-10b981.svg?style=flat-square)](https://github.com/SabbirXavier/force-paste/releases/latest)
+[![Version](https://img.shields.io/badge/Version-1.5.0-10b981.svg?style=flat-square)](https://github.com/SabbirXavier/force-paste/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Universal Browser Support](https://img.shields.io/badge/Universal-Chrome%20%7C%20Firefox%20%7C%20Brave%20%7C%20Edge%20%7C%20Opera-purple.svg?style=flat-square)](https://github.com/SabbirXavier/force-paste)
 
-*A 100% free, open-source browser extension featuring force-pasting with human typing simulation, tab visibility/focus spoofing (Always Active), text selection & copy unlocking, text staging, compact dual-icon dock, Ghost Mode for screen capture protection, and an instant vocabulary/thesaurus helper.*
+*A 100% free, open-source browser extension featuring force-pasting with human typing simulation, tab visibility/focus spoofing (Always Active), 4-layer universal text selection & copy unlocking, text staging, compact dual-icon dock, Ghost Mode for screen capture protection, and an instant vocabulary/thesaurus helper.*
 
 <br/>
 
-[![Download for Chrome / Chromium](https://img.shields.io/badge/Chrome%20%2F%20Brave%20%2F%20Edge-Direct%20Download-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.4.1.zip)
+[![Download for Chrome / Chromium](https://img.shields.io/badge/Chrome%20%2F%20Brave%20%2F%20Edge-Direct%20Download-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.5.0.zip)
 &nbsp;&nbsp;
-[![Download for Firefox](https://img.shields.io/badge/Firefox-Direct%20Download-FF7139?style=for-the-badge&logo=firefox&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.4.1.zip)
+[![Download for Firefox](https://img.shields.io/badge/Firefox-Direct%20Download-FF7139?style=for-the-badge&logo=firefox&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.5.0.zip)
 
 <br/>
 
@@ -59,11 +59,25 @@ Every feature comes with an **individual toggle switch** in the extension popup:
   * `mouseleave` (simulating mouse pointer staying inside window)
 * **Common Uses:** Keeps video players, audio streams, web timers, and background resource loading running continuously even when switching tabs or minimizing.
 
-### 🔓 4. Force Enable Text Select & Copy
-* **Unlocks Stubborn Text:** Forces text selection on websites that disable highlighting or context-menu copying.
-* **CSS & Event Unblocker:** Overrides `user-select: none`, nullifies `onselectstart`, and suppresses `selectstart` and `copy` cancellations.
+### 🔓 5. 4-Layer Universal Text Selection & Copy Shield
+Bypasses all four modern web protection mechanisms:
+* **Layer 1: CSS Protections Neutralized**
+  * Injects universal `user-select: text !important` across all DOM nodes and pseudo-elements.
+  * Overrides `-webkit-touch-callout: default !important` and forces visible high-contrast `::selection` highlighting so transparent highlight tricks cannot hide selections.
+* **Layer 2: JavaScript Event Interception Neutralized**
+  * **Neutralizes `removeAllRanges()` & `empty()`**: Hooks `Selection.prototype` so website scripts cannot wipe highlighted text on mouseup or selectionchange.
+  * **Hooks `Event.prototype.preventDefault()`**: Blocks page scripts from cancelling `selectstart`, `copy`, `cut`, and `mousedown`.
+  * **Suppresses Anti-Copy Listeners**: Intercepts `selectstart`, `dragstart`, `copy`, and `selectionchange` in the capture phase.
+  * **Cleans Inline Attributes**: Strips `unselectable="on"`, `onselectstart="return false"`, and `oncopy` via continuous `MutationObserver`.
+* **Layer 3: Structural & DOM Layout Neutralized**
+  * **Dynamic Transparent Overlay Puncturing**: Automatically detects empty transparent absolute/fixed elements sitting on top of text and disables their `pointer-events` so mouse drags pass directly to the text.
+  * **Zero-Width Character Sanitizer**: Automatically cleans invisible noise characters (`\u200B`, `\u200C`, `\u200D`, `\uFEFF`, soft hyphens, etc.) when copying text.
+* **Layer 4: Canvas & SVG Typography Support**
+  * **Canvas Document Text Layers**: Makes hidden `.textLayer` overlays (in PDF.js, Google Docs, Scribd, Kindle) 100% visible and selectable.
+  * **SVG Typography**: Enables native text selection across SVG `<text>`, `<tspan>`, and `<textPath>` elements.
+* **Alt + C (Force Copy Shortcut)**: Press **Alt + C** anywhere to force-copy clean text, or extract plain text directly from the hovered element under your cursor.
 
-### 📖 5. Instant Vocabulary & Thesaurus Helper
+### 📖 6. Instant Vocabulary & Thesaurus Helper
 * **Floating Define Badge:** Select any word on any webpage, and a small dark pin badge appears near your cursor.
 * **Quick Reference Definitions:** Clear meanings with part-of-speech labels (Noun, Verb, Adjective) and real sentence examples.
 * **Comprehensive Synonyms & Antonyms:** Click any synonym to instantly copy it to your clipboard (or replace the selected word if inside an input field).
@@ -78,7 +92,7 @@ Every feature comes with an **individual toggle switch** in the extension popup:
 ForcePaste works natively across **Chrome, Firefox, Brave, Edge, Opera, Vivaldi, and Arc**.
 
 ### 📥 1. Download
-* Download the universal package: [**`forcepaste-v1.4.0.zip`**](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.4.0.zip)
+* Download the universal package: [**`forcepaste-v1.5.0.zip`**](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.5.0.zip)
 * Extract (unzip) the file into a folder on your computer.
 
 ---

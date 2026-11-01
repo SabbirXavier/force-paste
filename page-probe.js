@@ -14,6 +14,88 @@
     alwaysActive: false
   };
 
+  // =========================================================================
+  // UNIVERSAL SELECTION & ANTI-COPY NEUTRALIZERS (MAIN WORLD)
+  // =========================================================================
+
+  // 1. Hook Selection.prototype.removeAllRanges & empty
+  // Stops anti-copy scripts from programmatically wiping user's text selection
+  const origRemoveAllRanges = Selection.prototype.removeAllRanges;
+  const origEmpty = Selection.prototype.empty;
+
+  Selection.prototype.removeAllRanges = function () {
+    if (featureState.selection) {
+      if (this.rangeCount > 0 && !this.isCollapsed) {
+        const text = this.toString();
+        if (text && text.trim().length > 0) {
+          return; // Protect active user selection from script wipe!
+        }
+      }
+    }
+    return origRemoveAllRanges.apply(this, arguments);
+  };
+
+  if (origEmpty) {
+    Selection.prototype.empty = function () {
+      if (featureState.selection) {
+        if (this.rangeCount > 0 && !this.isCollapsed) {
+          const text = this.toString();
+          if (text && text.trim().length > 0) {
+            return;
+          }
+        }
+      }
+      return origEmpty.apply(this, arguments);
+    };
+  }
+
+  // 2. Hook Event.prototype.preventDefault
+  // Stops page scripts from cancelling selectstart, copy, cut, or drag selection on mousedown
+  const origPreventDefault = Event.prototype.preventDefault;
+  Event.prototype.preventDefault = function () {
+    if (featureState.selection) {
+      if (this.type === "selectstart" || this.type === "copy" || this.type === "cut" || this.type === "dragstart") {
+        return; // Never allow website to cancel text selection or copy!
+      }
+      if (this.type === "mousedown" && this.button === 0) {
+        const t = this.target;
+        const isFormInteractive = t && t.closest && t.closest("input, textarea, select, button");
+        if (!isFormInteractive) {
+          return; // Allow text selection initiation
+        }
+      }
+    }
+    return origPreventDefault.apply(this, arguments);
+  };
+
+  // 3. Property descriptor protections for event blockers
+  function protectEventProperty(obj, prop) {
+    try {
+      let internalVal = null;
+      Object.defineProperty(obj, prop, {
+        get: () => (featureState.selection ? null : internalVal),
+        set: (val) => {
+          if (featureState.selection && typeof val === "function") {
+            const s = val.toString();
+            if (s.includes("false") || s.includes("preventDefault") || s.includes("empty") || s.includes("removeAllRanges")) {
+              internalVal = null;
+              return;
+            }
+          }
+          internalVal = val;
+        },
+        configurable: true
+      });
+    } catch (e) {}
+  }
+
+  protectEventProperty(Document.prototype, "onselectstart");
+  protectEventProperty(Document.prototype, "oncopy");
+  protectEventProperty(Document.prototype, "oncut");
+  protectEventProperty(Document.prototype, "onmousedown");
+  protectEventProperty(Window.prototype, "onselectstart");
+  protectEventProperty(Window.prototype, "oncopy");
+
   // Detected restrictions state
   const detectedRestrictions = {
     f12: {
@@ -217,12 +299,20 @@
     true
   );
 
-  // Copy / Cut / Paste
+  // Copy / Cut / Paste capture phase
   ["copy", "cut", "paste"].forEach((evtType) => {
     window.addEventListener(
       evtType,
       (e) => {
-        if (!featureState.copypaste) return;
+        if (!featureState.copypaste && !featureState.selection) return;
+        e.stopImmediatePropagation();
+      },
+      true
+    );
+    document.addEventListener(
+      evtType,
+      (e) => {
+        if (!featureState.copypaste && !featureState.selection) return;
         e.stopImmediatePropagation();
       },
       true
@@ -232,7 +322,7 @@
   window.addEventListener(
     "keydown",
     (e) => {
-      if (!featureState.copypaste) return;
+      if (!featureState.copypaste && !featureState.selection) return;
       if (e.ctrlKey || e.metaKey) {
         const k = (e.key || "").toLowerCase();
         if (["c", "v", "x", "a"].includes(k)) {
@@ -243,9 +333,29 @@
     true
   );
 
-  // Selection & Drag
-  window.addEventListener(
-    "selectstart",
+  // Selection & Drag Capture Phase
+  ["selectstart"].forEach((evtType) => {
+    window.addEventListener(
+      evtType,
+      (e) => {
+        if (!featureState.selection) return;
+        e.stopImmediatePropagation();
+      },
+      true
+    );
+    document.addEventListener(
+      evtType,
+      (e) => {
+        if (!featureState.selection) return;
+        e.stopImmediatePropagation();
+      },
+      true
+    );
+  });
+
+  // Stop page listeners on selectionchange from wiping user's text selection
+  document.addEventListener(
+    "selectionchange",
     (e) => {
       if (!featureState.selection) return;
       e.stopImmediatePropagation();
@@ -256,8 +366,29 @@
   window.addEventListener(
     "dragstart",
     (e) => {
-      if (!featureState.drag) return;
+      if (!featureState.drag && !featureState.selection) return;
       e.stopImmediatePropagation();
+    },
+    true
+  );
+
+  // Dynamic Transparent Overlay Puncturing & Mousedown Protection
+  window.addEventListener(
+    "mousedown",
+    (e) => {
+      if (!featureState.selection) return;
+
+      const target = e.target;
+      if (target && target !== document.body && target !== document.documentElement) {
+        // If element is empty or purely transparent overlay, puncture it!
+        const text = (target.innerText || target.textContent || "").trim();
+        if (text.length === 0 && target.children.length === 0) {
+          const style = window.getComputedStyle(target);
+          if (style.position === "absolute" || style.position === "fixed") {
+            target.style.setProperty("pointer-events", "none", "important");
+          }
+        }
+      }
     },
     true
   );
@@ -360,6 +491,56 @@
   });
 
   // 5. FORCE SELECT & COPY ENGINE
+  let selectionObserver = null;
+
+  function scrubElementProtections(root = document) {
+    if (!featureState.selection) return;
+    try {
+      const selector = '[unselectable], [onselectstart], [onmousedown], [oncopy], [oncut], [style*="user-select"]';
+      const elements = root.querySelectorAll ? root.querySelectorAll(selector) : [];
+      elements.forEach((el) => {
+        el.removeAttribute("unselectable");
+        el.removeAttribute("onselectstart");
+        el.removeAttribute("oncopy");
+        el.removeAttribute("oncut");
+        if (el.style) {
+          if (el.style.userSelect === "none" || el.style.webkitUserSelect === "none") {
+            el.style.removeProperty("user-select");
+            el.style.removeProperty("-webkit-user-select");
+          }
+        }
+      });
+    } catch (e) {}
+  }
+
+  function startSelectionObserver() {
+    if (selectionObserver || !window.MutationObserver) return;
+    try {
+      selectionObserver = new MutationObserver((mutations) => {
+        if (!featureState.selection) return;
+        for (const m of mutations) {
+          if (m.type === "childList") {
+            m.addedNodes.forEach((node) => {
+              if (node.nodeType === 1) scrubElementProtections(node);
+            });
+          } else if (m.type === "attributes") {
+            if (["unselectable", "onselectstart", "oncopy", "style"].includes(m.attributeName)) {
+              scrubElementProtections(m.target);
+            }
+          }
+        }
+      });
+      if (document.body) {
+        selectionObserver.observe(document.body, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["unselectable", "onselectstart", "oncopy", "style"]
+        });
+      }
+    } catch (e) {}
+  }
+
   function applySelectionCSS(enable) {
     let el = document.getElementById("__forcepaste_unblock_selection_style__");
     if (enable) {
@@ -367,17 +548,57 @@
         el = document.createElement("style");
         el.id = "__forcepaste_unblock_selection_style__";
         el.textContent = `
-          *, *::before, *::after {
+          /* Category 1: Universal CSS text selection enablement */
+          html, body, *, *::before, *::after {
             -webkit-user-select: text !important;
             -moz-user-select: text !important;
             -ms-user-select: text !important;
             user-select: text !important;
             -webkit-touch-callout: default !important;
-            pointer-events: auto !important;
           }
+
+          /* Force high-contrast visible selection highlight */
           ::selection {
             background-color: #3b82f6 !important;
             color: #ffffff !important;
+            text-shadow: none !important;
+          }
+          ::-moz-selection {
+            background-color: #3b82f6 !important;
+            color: #ffffff !important;
+            text-shadow: none !important;
+          }
+
+          /* Category 3: Neutralize pseudo-element transparent overlays */
+          *::before, *::after {
+            pointer-events: none !important;
+          }
+
+          /* Category 3: Neutralize empty overlay barrier elements */
+          div:empty, span:empty,
+          [class*="overlay"]:empty, [class*="shield"]:empty,
+          [class*="protect"]:empty, [class*="watermark"]:empty,
+          [class*="mask"]:empty, [id*="overlay"]:empty,
+          [id*="shield"]:empty, [id*="mask"]:empty {
+            pointer-events: none !important;
+          }
+
+          /* Category 4: Document and Canvas text layers (PDF.js, Scribd, Google Docs, Kindle) */
+          .textLayer, [class*="textLayer"], [class*="TextLayer"],
+          .textLayer *, [class*="textLayer"] *, [class*="TextLayer"] * {
+            opacity: 0.9 !important;
+            pointer-events: auto !important;
+            -webkit-user-select: text !important;
+            user-select: text !important;
+          }
+
+          /* Category 4: SVG Typography vector text selection */
+          svg text, svg tspan, svg textPath {
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            user-select: text !important;
+            pointer-events: auto !important;
+            cursor: text !important;
           }
         `;
         (document.head || document.documentElement).appendChild(el);
@@ -391,8 +612,15 @@
           document.body.style.userSelect = "text";
         }
       } catch (e) {}
+
+      scrubElementProtections(document);
+      startSelectionObserver();
     } else {
       if (el) el.remove();
+      if (selectionObserver) {
+        selectionObserver.disconnect();
+        selectionObserver = null;
+      }
     }
   }
 
@@ -449,6 +677,13 @@
       enableAlwaysActive(unblock);
     } else if (key === "alwaysActive") {
       enableAlwaysActive(unblock);
+    } else if (key === "selection") {
+      featureState.selection = unblock;
+      featureState.copypaste = unblock;
+      if (detectedRestrictions.selection) detectedRestrictions.selection.unblocked = unblock;
+      if (detectedRestrictions.copypaste) detectedRestrictions.copypaste.unblocked = unblock;
+      applySelectionCSS(unblock);
+      if (unblock) applyContextMenuClean(true);
     } else if (featureState[key] !== undefined) {
       featureState[key] = unblock;
       if (detectedRestrictions[key]) {
@@ -457,6 +692,7 @@
       if (key === "selection") applySelectionCSS(unblock);
       if (key === "contextmenu") applyContextMenuClean(unblock);
       if (key === "f12") applyF12Clean(unblock);
+      if (key === "copypaste") applySelectionCSS(unblock);
     }
 
     notifyDetection();

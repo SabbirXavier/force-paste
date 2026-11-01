@@ -43,13 +43,18 @@ chrome.runtime.onInstalled.addListener(async () => {
     await chrome.storage.local.set(toSet);
   }
 
-  // Create context menu for vocabulary lookup
+  // Create context menus for vocabulary lookup and forced text copying
   if (chrome.contextMenus) {
     chrome.contextMenus.removeAll(() => {
       chrome.contextMenus.create({
         id: "forcepaste_define",
         title: "ForcePaste: Define & Synonyms for '%s'",
         contexts: ["selection"]
+      });
+      chrome.contextMenus.create({
+        id: "forcepaste_copy_element",
+        title: "ForcePaste: Extract & Copy Clean Text (Alt+C)",
+        contexts: ["all"]
       });
     });
   }
@@ -66,6 +71,14 @@ if (chrome.contextMenus?.onClicked) {
         });
       } catch (err) {
         console.warn("Could not send definition command to tab:", err);
+      }
+    } else if (info.menuItemId === "forcepaste_copy_element" && tab?.id) {
+      try {
+        await chrome.tabs.sendMessage(tab.id, {
+          type: "EXTRACT_ELEMENT_TEXT"
+        });
+      } catch (err) {
+        console.warn("Could not send extract command to tab:", err);
       }
     }
   });
@@ -130,6 +143,15 @@ if (chrome.commands?.onCommand) {
         }
       } catch (err) {
         console.warn("Could not send command to active tab:", err);
+      }
+    } else if (command === "force_copy") {
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.id) {
+          await chrome.tabs.sendMessage(tab.id, { type: "EXTRACT_ELEMENT_TEXT" });
+        }
+      } catch (err) {
+        console.warn("Could not send extract command to active tab:", err);
       }
     } else if (command === "toggle_ghost_mode") {
       try {

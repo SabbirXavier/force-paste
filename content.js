@@ -117,6 +117,12 @@
       sendResponse({ success: true });
       return true;
     }
+
+    if (msg.type === "EXTRACT_ELEMENT_TEXT") {
+      performForceCopy();
+      sendResponse({ success: true });
+      return true;
+    }
   });
 
   // Create isolated Shadow DOM Host
@@ -559,11 +565,55 @@
     </div>
   `;
 
+  // Notification Toast element
+  const toast = document.createElement("div");
+  toast.id = "fp-toast";
+  toast.style.cssText = `
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    background: #0f172a;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 16px;
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.15);
+    z-index: 2147483647;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    opacity: 0;
+    display: none;
+  `;
+
   shadow.appendChild(style);
   shadow.appendChild(container);
   shadow.appendChild(dialogOverlay);
   shadow.appendChild(defineBadge);
   shadow.appendChild(vocabCard);
+  shadow.appendChild(toast);
+
+  let toastTimer = null;
+  function showToast(msg) {
+    if (settings.ghostMode) return;
+    mountHost();
+    toast.textContent = msg;
+    toast.style.display = "block";
+    setTimeout(() => {
+      toast.style.opacity = "1";
+      toast.style.transform = "translateX(-50%) translateY(0)";
+    }, 10);
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateX(-50%) translateY(-10px)";
+      setTimeout(() => {
+        toast.style.display = "none";
+      }, 200);
+    }, 2200);
+  }
 
   const mountHost = () => {
     if (!document.documentElement.contains(host)) {
@@ -581,6 +631,7 @@
       if (typeof dialogOverlay !== "undefined" && dialogOverlay) dialogOverlay.style.display = "none";
       if (typeof defineBadge !== "undefined" && defineBadge) defineBadge.style.display = "none";
       if (typeof vocabCard !== "undefined" && vocabCard) vocabCard.style.display = "none";
+      if (typeof toast !== "undefined" && toast) toast.style.display = "none";
     } else {
       host.style.removeProperty("display");
       if (activeElement && isEditable(activeElement) && settings.enabled && settings.showFloatingIcon && !isTyping) {
@@ -973,8 +1024,92 @@
     showSetTextDialog(target);
   });
 
+  // Track hovered element for Force Text Extract & Copy
+  let lastHoveredElement = null;
+  document.addEventListener(
+    "mouseover",
+    (e) => {
+      if (e.target && !host.contains(e.target)) {
+        lastHoveredElement = e.target;
+      }
+    },
+    { passive: true }
+  );
+
+  function copyTextFallback(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+    } catch (e) {}
+    ta.remove();
+  }
+
+  function performForceCopy() {
+    let textToCopy = "";
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+      textToCopy = sel.toString();
+    } else {
+      const el = lastHoveredElement || (isEditable(document.activeElement) ? document.activeElement : null);
+      if (el && el !== document.body && el !== document.documentElement) {
+        textToCopy = el.innerText || el.textContent || el.getAttribute("aria-label") || el.getAttribute("title") || "";
+      }
+    }
+
+    if (textToCopy && textToCopy.trim().length > 0) {
+      // Strip zero-width spaces, soft hyphens, byte order marks, and invisible noise
+      const clean = textToCopy
+        .replace(/[\u200B\u200C\u200D\uFEFF\u00AD\u2060\u200E\u200F]/g, "")
+        .replace(/\u00A0/g, " ");
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(clean).then(() => {
+          showToast("📋 Clean text copied!");
+        }).catch(() => {
+          copyTextFallback(clean);
+          showToast("📋 Clean text copied!");
+        });
+      } else {
+        copyTextFallback(clean);
+        showToast("📋 Clean text copied!");
+      }
+    } else {
+      showToast("ℹ️ Highlight text or hover an element to copy");
+    }
+  }
+
+  // Native Copy Sanitizer: automatically cleans zero-width spaces & noise characters
+  document.addEventListener(
+    "copy",
+    (e) => {
+      if (!settings.forceSelect) return;
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+        const rawText = sel.toString();
+        if (rawText && rawText.length > 0) {
+          const cleanText = rawText
+            .replace(/[\u200B\u200C\u200D\uFEFF\u00AD\u2060\u200E\u200F]/g, "")
+            .replace(/\u00A0/g, " ");
+
+          if (e.clipboardData) {
+            e.clipboardData.setData("text/plain", cleanText);
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          }
+        }
+      }
+    },
+    true
+  );
+
   // Keyboard Shortcuts:
   // Alt + V: Trigger ForcePaste
+  // Alt + C: Trigger ForceCopy (clean text / extract from element)
   // Alt + H: Toggle Ghost Mode (Hide/Show on-screen UI from screen captures)
   document.addEventListener(
     "keydown",
@@ -987,6 +1122,13 @@
           activeElement = target;
           performPaste();
         }
+      }
+
+      // Alt + C: Force Copy / Extract Text
+      if (e.altKey && (e.key === "c" || e.key === "C" || e.code === "KeyC")) {
+        e.preventDefault();
+        e.stopPropagation();
+        performForceCopy();
       }
 
       // Alt + H toggles Ghost Mode
