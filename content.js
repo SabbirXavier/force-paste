@@ -137,6 +137,24 @@
       return true;
     }
 
+    if (msg.type === "STOP_TYPING") {
+      if (isTyping) {
+        abortTyping = true;
+        showToast("⏹ Typing stopped");
+      }
+      sendResponse({ success: true });
+      return true;
+    }
+
+    if (msg.type === "CLEAR_STAGED_TEXT") {
+      settings.lastStagedText = "";
+      settings.stagedText = "";
+      chrome.storage.local.set({ lastStagedText: "", stagedText: "" });
+      showToast("🗑️ Copied text & staging cleared");
+      sendResponse({ success: true });
+      return true;
+    }
+
     if (msg.type === "TYPE_STAGED_TEXT") {
       const target = activeElement || (isEditable(document.activeElement) ? document.activeElement : null);
       if (target && msg.text) {
@@ -1307,36 +1325,102 @@
     true
   );
 
-  // Keyboard Shortcuts:
-  // Alt + V: Trigger ForcePaste
-  // Alt + C: Trigger ForceCopy (clean text / extract from element)
-  // Alt + H: Toggle Ghost Mode (Hide/Show on-screen UI from screen captures)
+  // Customizable Keyboard Shortcuts Engine
+  const defaultShortcuts = {
+    paste: { key: "v", alt: true, ctrl: false, shift: false, meta: false, display: "Alt + V" },
+    stop: { key: "Escape", alt: false, ctrl: false, shift: false, meta: false, display: "Escape" },
+    clear: { key: "k", alt: true, ctrl: false, shift: false, meta: false, display: "Alt + K" },
+    copy: { key: "c", alt: true, ctrl: false, shift: false, meta: false, display: "Alt + C" },
+    ghost: { key: "h", alt: true, ctrl: false, shift: false, meta: false, display: "Alt + H" }
+  };
+  let activeShortcuts = { ...defaultShortcuts };
+
+  chrome.storage.local.get(["customShortcuts"], (res) => {
+    if (res && res.customShortcuts) {
+      activeShortcuts = { ...defaultShortcuts, ...res.customShortcuts };
+    }
+  });
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.customShortcuts) {
+      activeShortcuts = { ...defaultShortcuts, ...(changes.customShortcuts.newValue || {}) };
+    }
+  });
+
+  function matchesShortcut(e, shortcut) {
+    if (!shortcut || !shortcut.key) return false;
+    const matchAlt = !!shortcut.alt === !!e.altKey;
+    const matchCtrl = !!shortcut.ctrl === !!e.ctrlKey;
+    const matchShift = !!shortcut.shift === !!e.shiftKey;
+    const matchMeta = !!shortcut.meta === !!e.metaKey;
+
+    const keyLower = shortcut.key.toLowerCase();
+    const eKeyLower = (e.key || "").toLowerCase();
+    const eCodeLower = (e.code || "").toLowerCase();
+
+    const matchKey =
+      eKeyLower === keyLower ||
+      eCodeLower === `key${keyLower}` ||
+      eCodeLower === `digit${keyLower}` ||
+      eCodeLower === keyLower;
+
+    return matchAlt && matchCtrl && matchShift && matchMeta && matchKey;
+  }
+
   document.addEventListener(
     "keydown",
     (e) => {
-      if (e.altKey && (e.key === "v" || e.key === "V" || e.code === "KeyV")) {
+      // 1. Stop Typing (Abort / Cancel)
+      if (matchesShortcut(e, activeShortcuts.stop)) {
+        if (isTyping) {
+          e.preventDefault();
+          e.stopPropagation();
+          abortTyping = true;
+          showToast("⏹ Typing stopped");
+          return;
+        }
+      }
+
+      // 2. Clear Copied & Staged Text
+      if (matchesShortcut(e, activeShortcuts.clear)) {
+        e.preventDefault();
+        e.stopPropagation();
+        settings.lastStagedText = "";
+        settings.stagedText = "";
+        chrome.storage.local.set({ lastStagedText: "", stagedText: "" });
+        showToast("🗑️ Copied text & staging cleared");
+        return;
+      }
+
+      // 3. Quick Paste / Force-Type
+      if (matchesShortcut(e, activeShortcuts.paste)) {
         const target = isEditable(document.activeElement) ? document.activeElement : activeElement;
         if (target) {
           e.preventDefault();
           e.stopPropagation();
           activeElement = target;
           performPaste();
+          return;
         }
       }
 
-      // Alt + C: Force Copy / Extract Text
-      if (e.altKey && (e.key === "c" || e.key === "C" || e.code === "KeyC")) {
+      // 4. Force Copy / Clean Extract
+      if (matchesShortcut(e, activeShortcuts.copy)) {
         e.preventDefault();
         e.stopPropagation();
         performForceCopy();
+        return;
       }
 
-      // Alt + H toggles Ghost Mode
-      if (e.altKey && (e.key === "h" || e.key === "H" || e.code === "KeyH")) {
+      // 5. Toggle Ghost Mode
+      if (matchesShortcut(e, activeShortcuts.ghost)) {
         e.preventDefault();
+        e.stopPropagation();
         settings.ghostMode = !settings.ghostMode;
         chrome.storage.local.set({ ghostMode: settings.ghostMode });
         updateGhostModeDisplay();
+        showToast(settings.ghostMode ? "👻 Ghost Mode ON" : "👁️ Ghost Mode OFF");
+        return;
       }
     },
     true

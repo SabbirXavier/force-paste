@@ -175,6 +175,25 @@ if (chrome.commands?.onCommand) {
       } catch (err) {
         console.warn("Could not send command to active tab:", err);
       }
+    } else if (command === "stop_typing") {
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.id) {
+          await chrome.tabs.sendMessage(tab.id, { type: "STOP_TYPING" });
+        }
+      } catch (err) {
+        console.warn("Could not send stop command to active tab:", err);
+      }
+    } else if (command === "clear_copied") {
+      try {
+        await chrome.storage.local.set({ lastStagedText: "", stagedText: "" });
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.id) {
+          await chrome.tabs.sendMessage(tab.id, { type: "CLEAR_STAGED_TEXT" });
+        }
+      } catch (err) {
+        console.warn("Could not send clear command to active tab:", err);
+      }
     } else if (command === "force_copy") {
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

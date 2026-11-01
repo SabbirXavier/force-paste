@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ForcePaste: Smart Paste & Key Shield",
-  "version": "1.6.1",
+  "version": "1.7.0",
   "description": "Force-paste with human typing, keep tabs always active, unlock text selection & copy, and look up instant definitions & synonyms.",
   "permissions": [
     "storage",
@@ -56,6 +56,20 @@
       },
       "description": "Force paste clipboard into active field"
     },
+    "stop_typing": {
+      "suggested_key": {
+        "default": "Alt+X",
+        "mac": "Alt+X"
+      },
+      "description": "Stop and abort active typing simulation"
+    },
+    "clear_copied": {
+      "suggested_key": {
+        "default": "Alt+K",
+        "mac": "Alt+K"
+      },
+      "description": "Clear copied and staged text cache"
+    },
     "force_copy": {
       "suggested_key": {
         "default": "Alt+C",
@@ -64,10 +78,6 @@
       "description": "Force copy clean text or extract from element"
     },
     "toggle_ghost_mode": {
-      "suggested_key": {
-        "default": "Alt+H",
-        "mac": "Alt+H"
-      },
       "description": "Toggle Ghost Mode (Hide all UI on screen)"
     }
   }

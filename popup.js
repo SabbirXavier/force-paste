@@ -915,9 +915,170 @@ document.addEventListener("DOMContentLoaded", async () => {
     return clampedDelays;
   }
 
+  // --- Editable Keyboard Shortcuts & Key Mapping Logic ---
+  const defaultShortcuts = {
+    paste: { key: "v", alt: true, ctrl: false, shift: false, meta: false, display: "Alt + V" },
+    stop: { key: "Escape", alt: false, ctrl: false, shift: false, meta: false, display: "Escape" },
+    clear: { key: "k", alt: true, ctrl: false, shift: false, meta: false, display: "Alt + K" },
+    copy: { key: "c", alt: true, ctrl: false, shift: false, meta: false, display: "Alt + C" },
+    ghost: { key: "h", alt: true, ctrl: false, shift: false, meta: false, display: "Alt + H" }
+  };
+
+  let customShortcuts = { ...defaultShortcuts };
+
+  try {
+    const scRes = await chrome.storage.local.get(["customShortcuts"]);
+    if (scRes && scRes.customShortcuts) {
+      customShortcuts = { ...defaultShortcuts, ...scRes.customShortcuts };
+    }
+  } catch (e) {}
+
+  function updateShortcutButtonsDisplay() {
+    Object.keys(defaultShortcuts).forEach((action) => {
+      const btn = document.getElementById(`sc-btn-${action}`);
+      if (btn && customShortcuts[action]) {
+        btn.textContent = customShortcuts[action].display;
+      }
+    });
+
+    if (testField && customShortcuts.paste) {
+      testField.placeholder = `Copy text, click here & press ${customShortcuts.paste.display} to test`;
+    }
+  }
+  updateShortcutButtonsDisplay();
+
+  const btnResetShortcuts = document.getElementById("btn-reset-shortcuts");
+  btnResetShortcuts?.addEventListener("click", async () => {
+    customShortcuts = { ...defaultShortcuts };
+    await chrome.storage.local.set({ customShortcuts });
+    updateShortcutButtonsDisplay();
+    btnResetShortcuts.textContent = "✓ Reset";
+    setTimeout(() => {
+      btnResetShortcuts.textContent = "↺ Reset";
+    }, 1000);
+  });
+
+  let recordingAction = null;
+  const shortcutButtons = document.querySelectorAll(".shortcut-key-btn");
+
+  shortcutButtons.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const action = btn.dataset.action;
+
+      if (recordingAction === action) {
+        recordingAction = null;
+        btn.classList.remove("recording");
+        btn.textContent = customShortcuts[action]?.display || "Alt + V";
+        return;
+      }
+
+      shortcutButtons.forEach((b) => {
+        b.classList.remove("recording");
+        const act = b.dataset.action;
+        b.textContent = customShortcuts[act]?.display || "Alt + V";
+      });
+
+      recordingAction = action;
+      btn.classList.add("recording");
+      btn.textContent = "Press keys...";
+    });
+  });
+
+  window.addEventListener("keydown", async (e) => {
+    if (!recordingAction) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    // If only modifier is held, show partial combo
+    if (["Control", "Alt", "Shift", "Meta"].includes(e.key)) {
+      const parts = [];
+      if (e.ctrlKey) parts.push("Ctrl");
+      if (e.altKey) parts.push("Alt");
+      if (e.shiftKey) parts.push("Shift");
+      if (e.metaKey) parts.push("Cmd");
+      const btn = document.getElementById(`sc-btn-${recordingAction}`);
+      if (btn) btn.textContent = parts.join(" + ") + " + ...";
+      return;
+    }
+
+    const parts = [];
+    if (e.ctrlKey) parts.push("Ctrl");
+    if (e.altKey) parts.push("Alt");
+    if (e.shiftKey) parts.push("Shift");
+    if (e.metaKey) parts.push("Cmd");
+
+    let keyName = e.key;
+    if (keyName === " ") keyName = "Space";
+    else if (keyName.length === 1) keyName = keyName.toUpperCase();
+
+    parts.push(keyName);
+    const displayStr = parts.join(" + ");
+
+    const newMapping = {
+      key: e.key,
+      code: e.code,
+      alt: e.altKey,
+      ctrl: e.ctrlKey,
+      shift: e.shiftKey,
+      meta: e.metaKey,
+      display: displayStr
+    };
+
+    customShortcuts[recordingAction] = newMapping;
+    await chrome.storage.local.set({ customShortcuts });
+
+    const btn = document.getElementById(`sc-btn-${recordingAction}`);
+    if (btn) {
+      btn.classList.remove("recording");
+      btn.textContent = `✓ ${displayStr}`;
+      setTimeout(() => {
+        btn.textContent = displayStr;
+      }, 900);
+    }
+
+    if (recordingAction === "paste" && testField) {
+      testField.placeholder = `Copy text, click here & press ${displayStr} to test`;
+    }
+
+    recordingAction = null;
+  });
+
+  window.addEventListener("click", () => {
+    if (recordingAction) {
+      const btn = document.getElementById(`sc-btn-${recordingAction}`);
+      if (btn) {
+        btn.classList.remove("recording");
+        btn.textContent = customShortcuts[recordingAction]?.display || "Alt + V";
+      }
+      recordingAction = null;
+    }
+  });
+
+  function matchesShortcut(e, shortcut) {
+    if (!shortcut || !shortcut.key) return false;
+    const matchAlt = !!shortcut.alt === !!e.altKey;
+    const matchCtrl = !!shortcut.ctrl === !!e.ctrlKey;
+    const matchShift = !!shortcut.shift === !!e.shiftKey;
+    const matchMeta = !!shortcut.meta === !!e.metaKey;
+
+    const keyLower = shortcut.key.toLowerCase();
+    const eKeyLower = (e.key || "").toLowerCase();
+    const eCodeLower = (e.code || "").toLowerCase();
+
+    const matchKey =
+      eKeyLower === keyLower ||
+      eCodeLower === `key${keyLower}` ||
+      eCodeLower === `digit${keyLower}` ||
+      eCodeLower === keyLower;
+
+    return matchAlt && matchCtrl && matchShift && matchMeta && matchKey;
+  }
+
   // Playground simulation inside popup
   testField.addEventListener("keydown", async (e) => {
-    if (e.altKey && (e.key === "v" || e.key === "V")) {
+    if (matchesShortcut(e, customShortcuts.paste)) {
       e.preventDefault();
       try {
         const text = await navigator.clipboard.readText();
