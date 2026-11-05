@@ -175,7 +175,7 @@ function initPopup() {
 
     if (toggleForceSelect) toggleForceSelect.checked = settings.forceSelect ?? false;
     if (toggleGhostMode) toggleGhostMode.checked = settings.ghostMode ?? false;
-    if (toggleVocabHelper) toggleVocabHelper.checked = settings.vocabHelper ?? true;
+    if (toggleVocabHelper) toggleVocabHelper.checked = settings.vocabHelper ?? false;
 
     const initialStaged = settings.stagedText || settings.lastStagedText || "";
     if (initialStaged && stagingTextarea) {
@@ -565,12 +565,6 @@ function initPopup() {
       stealthBadge.style.color = "#1d4ed8";
       stealthDesc.innerHTML = "High-contrast standard blue selection highlight for everyday general web browsing.";
     }
-  }
-
-  const initialStealthMode = settings.stealthHighlightStyle || "invisible";
-  if (selectStealthHighlight) {
-    selectStealthHighlight.value = initialStealthMode;
-    updateStealthUI(initialStealthMode);
   }
 
   selectStealthHighlight?.addEventListener("change", async () => {

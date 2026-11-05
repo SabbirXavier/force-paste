@@ -6,7 +6,7 @@ def package():
     with open("manifest.json", "r", encoding="utf-8") as f:
         manifest = json.load(f)
 
-    version = manifest.get("version", "1.8.0")
+    version = manifest.get("version", "1.8.1")
     zip_filename = f"forcepaste-v{version}.zip"
 
     include_files = [

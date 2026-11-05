@@ -745,29 +745,51 @@
     }
   }
 
+  let f12CleanInstalled = false;
   function applyF12Clean(enable) {
-    if (enable) {
-      try {
-        if (document.onkeydown) {
-          const original = document.onkeydown;
-          document.onkeydown = function (e) {
-            if (e && (e.which === 123 || e.keyCode === 123 || e.which === 17)) return true;
-            return original.apply(this, arguments);
-          };
-        }
-      } catch (e) {}
+    if (enable && !f12CleanInstalled) {
+      f12CleanInstalled = true;
+      window.addEventListener(
+        "keydown",
+        (e) => {
+          if (!featureState.f12) return;
+          const isF12 = e.which === 123 || e.keyCode === 123 || e.key === "F12";
+          const isDevToolsCombo =
+            (e.ctrlKey || e.metaKey) &&
+            e.shiftKey &&
+            (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67 || e.key === "I" || e.key === "J" || e.key === "C");
+          if (isF12 || isDevToolsCombo) {
+            e.stopImmediatePropagation();
+          }
+        },
+        true
+      );
     }
   }
 
+  let notifyTimer = null;
+  let lastNotifiedJSON = "";
   function notifyDetection() {
-    window.postMessage(
-      {
-        type: "HT_RESTRICTIONS_UPDATE",
-        restrictions: detectedRestrictions,
-        featureState: featureState
-      },
-      "*"
-    );
+    if (notifyTimer) clearTimeout(notifyTimer);
+    notifyTimer = setTimeout(() => {
+      try {
+        const payload = JSON.stringify({
+          r: detectedRestrictions,
+          f: featureState
+        });
+        if (payload === lastNotifiedJSON) return; // Prevent infinite message loop
+        lastNotifiedJSON = payload;
+
+        window.postMessage(
+          {
+            type: "HT_RESTRICTIONS_UPDATE",
+            restrictions: detectedRestrictions,
+            featureState: featureState
+          },
+          "*"
+        );
+      } catch (e) {}
+    }, 200);
   }
 
   // Listen for control messages from content script
@@ -776,8 +798,10 @@
 
     if (e.data.type === "HT_SET_STEALTH_SELECTION") {
       stealthSelectionMode = e.data.mode || "invisible";
-      if (featureState.selection) {
+      if (stealthSelectionMode === "invisible" || stealthSelectionMode === "subtle" || featureState.selection) {
         applySelectionCSS(true, stealthSelectionMode);
+      } else {
+        applySelectionCSS(false, stealthSelectionMode);
       }
       return;
     }
@@ -787,6 +811,8 @@
       stealthSelectionMode = incomingMode;
     }
 
+    const isStealthActive = stealthSelectionMode === "invisible" || stealthSelectionMode === "subtle";
+
     if (key === "all") {
       Object.keys(featureState).forEach((k) => {
         featureState[k] = unblock;
@@ -794,7 +820,7 @@
           detectedRestrictions[k].unblocked = unblock;
         }
       });
-      applySelectionCSS(unblock, stealthSelectionMode);
+      applySelectionCSS(unblock || isStealthActive, stealthSelectionMode);
       applyContextMenuClean(unblock);
       applyF12Clean(unblock);
       enableAlwaysActive(unblock);
@@ -805,20 +831,21 @@
       featureState.copypaste = unblock;
       if (detectedRestrictions.selection) detectedRestrictions.selection.unblocked = unblock;
       if (detectedRestrictions.copypaste) detectedRestrictions.copypaste.unblocked = unblock;
-      applySelectionCSS(unblock, stealthSelectionMode);
+      applySelectionCSS(unblock || isStealthActive, stealthSelectionMode);
       if (unblock) applyContextMenuClean(true);
     } else if (featureState[key] !== undefined) {
       featureState[key] = unblock;
       if (detectedRestrictions[key]) {
         detectedRestrictions[key].unblocked = unblock;
       }
-      if (key === "selection") applySelectionCSS(unblock, stealthSelectionMode);
+      if (key === "selection") applySelectionCSS(unblock || isStealthActive, stealthSelectionMode);
       if (key === "contextmenu") applyContextMenuClean(unblock);
       if (key === "f12") applyF12Clean(unblock);
-      if (key === "copypaste") applySelectionCSS(unblock, stealthSelectionMode);
+      if (key === "copypaste") applySelectionCSS(unblock || isStealthActive, stealthSelectionMode);
     }
 
-    notifyDetection();
+    // Do NOT call notifyDetection() synchronously here:
+    // Calling notifyDetection() here creates an immediate ping-pong loop with content script autoUnblock!
   });
 
   scanPropertyBlockers();

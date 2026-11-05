@@ -6,6 +6,27 @@
   if (window.__FORCEPASTE_CONTENT_INITIALIZED__) return;
   window.__FORCEPASTE_CONTENT_INITIALIZED__ = true;
 
+  // Safe Extension Context Helpers
+  function isExtensionValid() {
+    return typeof chrome !== "undefined" && !!chrome.runtime && !!chrome.runtime.id;
+  }
+
+  function safeStorageSet(items) {
+    if (!isExtensionValid()) return;
+    try {
+      chrome.storage.local.set(items);
+    } catch (e) {}
+  }
+
+  async function safeSendMessage(message) {
+    if (!isExtensionValid()) return null;
+    try {
+      return await chrome.runtime.sendMessage(message);
+    } catch (e) {
+      return null;
+    }
+  }
+
   // Settings cache
   let settings = {
     enabled: true,
@@ -17,7 +38,7 @@
     autoUnblock: false,
     alwaysActive: false,
     forceSelect: false,
-    vocabHelper: true,
+    vocabHelper: false,
     ghostMode: false,
     stealthHighlightStyle: "invisible",
     lastStagedText: ""
@@ -31,11 +52,12 @@
   let currentRestrictions = null;
   let selectedWord = "";
   let myTabId = null;
+  let lastAutoUnblockTime = 0;
 
   // Ask background for our tab ID and tab-specific Always Active state
   async function checkTabAlwaysActive() {
     try {
-      const resp = await chrome.runtime.sendMessage({ type: "CHECK_TAB_ALWAYS_ACTIVE" });
+      const resp = await safeSendMessage({ type: "CHECK_TAB_ALWAYS_ACTIVE" });
       if (resp && resp.tabId) {
         myTabId = resp.tabId;
         settings.alwaysActive = !!resp.alwaysActive;
@@ -45,47 +67,50 @@
   }
 
   // Load settings
-  chrome.storage.local.get(null, (res) => {
-    if (res) {
-      settings = { ...settings, ...res };
-      checkTabAlwaysActive();
-      syncProbeFeatures();
-      updateGhostModeDisplay();
-    }
-  });
-
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local") {
-      for (const [key, change] of Object.entries(changes)) {
-        if (key !== "alwaysActive") {
-          settings[key] = change.newValue;
-        }
-      }
-      if (changes.alwaysActiveTabIds && myTabId) {
-        const activeIds = changes.alwaysActiveTabIds.newValue || [];
-        const isMyTabActive = Array.isArray(activeIds) && activeIds.includes(myTabId);
-        if (settings.alwaysActive !== isMyTabActive) {
-          settings.alwaysActive = isMyTabActive;
-          window.postMessage({ type: "HT_SET_UNBLOCK_STATE", key: "alwaysActive", unblock: isMyTabActive }, "*");
-        }
-      }
-      syncProbeFeatures();
-      if (!settings.showFloatingIcon || !settings.enabled || settings.ghostMode) {
-        hideButton();
-      }
-      if (changes.ghostMode !== undefined) {
+  if (isExtensionValid()) {
+    chrome.storage.local.get(null, (res) => {
+      if (res) {
+        settings = { ...settings, ...res };
+        checkTabAlwaysActive();
+        syncProbeFeatures();
         updateGhostModeDisplay();
       }
-    }
-  });
+    });
+
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local") {
+        for (const [key, change] of Object.entries(changes)) {
+          if (key !== "alwaysActive") {
+            settings[key] = change.newValue;
+          }
+        }
+        if (changes.alwaysActiveTabIds && myTabId) {
+          const activeIds = changes.alwaysActiveTabIds.newValue || [];
+          const isMyTabActive = Array.isArray(activeIds) && activeIds.includes(myTabId);
+          if (settings.alwaysActive !== isMyTabActive) {
+            settings.alwaysActive = isMyTabActive;
+            window.postMessage({ type: "HT_SET_UNBLOCK_STATE", key: "alwaysActive", unblock: isMyTabActive }, "*");
+          }
+        }
+        syncProbeFeatures();
+        if (!settings.showFloatingIcon || !settings.enabled || settings.ghostMode) {
+          hideButton();
+        }
+        if (changes.ghostMode !== undefined) {
+          updateGhostModeDisplay();
+        }
+      }
+    });
+  }
 
   function syncProbeFeatures() {
     const effectiveHighlightStyle = settings.ghostMode ? "invisible" : (settings.stealthHighlightStyle || "invisible");
+    const shouldEnableSelection = !!settings.forceSelect || settings.ghostMode || effectiveHighlightStyle === "invisible" || effectiveHighlightStyle === "subtle";
     window.postMessage({ type: "HT_SET_UNBLOCK_STATE", key: "alwaysActive", unblock: !!settings.alwaysActive }, "*");
     window.postMessage({
       type: "HT_SET_UNBLOCK_STATE",
       key: "selection",
-      unblock: !!settings.forceSelect,
+      unblock: shouldEnableSelection,
       stealthSelectionMode: effectiveHighlightStyle
     }, "*");
 
@@ -95,7 +120,7 @@
         window.frames[i].postMessage({
           type: "HT_SET_UNBLOCK_STATE",
           key: "selection",
-          unblock: !!settings.forceSelect,
+          unblock: shouldEnableSelection,
           stealthSelectionMode: effectiveHighlightStyle
         }, "*");
       } catch (e) {}
@@ -108,6 +133,11 @@
     currentRestrictions = e.data.restrictions;
 
     if (settings.autoUnblock) {
+      const now = Date.now();
+      // Throttle auto-unblock so it cannot run more than once every 2 seconds
+      if (now - lastAutoUnblockTime < 2000) return;
+      lastAutoUnblockTime = now;
+
       const effectiveHighlightStyle = settings.ghostMode ? "invisible" : (settings.stealthHighlightStyle || "invisible");
       window.postMessage({
         type: "HT_SET_UNBLOCK_STATE",
@@ -215,7 +245,7 @@
     if (msg.type === "CLEAR_STAGED_TEXT") {
       settings.lastStagedText = "";
       settings.stagedText = "";
-      chrome.storage.local.set({ lastStagedText: "", stagedText: "" });
+      safeStorageSet({ lastStagedText: "", stagedText: "" });
       showToast("🗑️ Copied text & staging cleared");
       sendResponse({ success: true });
       return true;
@@ -225,7 +255,7 @@
       const target = activeElement || (isEditable(document.activeElement) ? document.activeElement : null);
       if (target && msg.text) {
         settings.lastStagedText = msg.text;
-        chrome.storage.local.set({ lastStagedText: msg.text });
+        safeStorageSet({ lastStagedText: msg.text });
         typeTextIntoElement(target, msg.text);
       }
       sendResponse({ success: true });
@@ -1200,7 +1230,7 @@
 
   async function fetchClipboardText() {
     try {
-      const resp = await chrome.runtime.sendMessage({ type: "READ_CLIPBOARD_BG" });
+      const resp = await safeSendMessage({ type: "READ_CLIPBOARD_BG" });
       if (resp && typeof resp.text === "string" && resp.text.length > 0) {
         return resp.text;
       }
@@ -1272,7 +1302,7 @@
         e.stopPropagation();
         textarea.value = "";
         settings.lastStagedText = "";
-        chrome.storage.local.set({ lastStagedText: "", stagedText: "" });
+        safeStorageSet({ lastStagedText: "", stagedText: "" });
       };
     }
 
@@ -1288,7 +1318,7 @@
       if (text && text.length > 0) {
         // Remember this text so future clicks paste directly without opening pop-up!
         settings.lastStagedText = text;
-        chrome.storage.local.set({ lastStagedText: text, stagedText: text });
+        safeStorageSet({ lastStagedText: text, stagedText: text });
         if (target) {
           typeTextIntoElement(target, text);
         }
@@ -1410,17 +1440,19 @@
   };
   let activeShortcuts = { ...defaultShortcuts };
 
-  chrome.storage.local.get(["customShortcuts"], (res) => {
-    if (res && res.customShortcuts) {
-      activeShortcuts = { ...defaultShortcuts, ...res.customShortcuts };
-    }
-  });
+  if (isExtensionValid()) {
+    chrome.storage.local.get(["customShortcuts"], (res) => {
+      if (res && res.customShortcuts) {
+        activeShortcuts = { ...defaultShortcuts, ...res.customShortcuts };
+      }
+    });
 
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.customShortcuts) {
-      activeShortcuts = { ...defaultShortcuts, ...(changes.customShortcuts.newValue || {}) };
-    }
-  });
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" && changes.customShortcuts) {
+        activeShortcuts = { ...defaultShortcuts, ...(changes.customShortcuts.newValue || {}) };
+      }
+    });
+  }
 
   function matchesShortcut(e, shortcut) {
     if (!shortcut || !shortcut.key) return false;
@@ -1445,6 +1477,8 @@
   document.addEventListener(
     "keydown",
     (e) => {
+      if (!isExtensionValid()) return; // Prevent extension context invalidated crash on reloaded tabs
+
       // 1. Stop Typing (Abort / Cancel)
       if (matchesShortcut(e, activeShortcuts.stop)) {
         if (isTyping) {
@@ -1462,7 +1496,7 @@
         e.stopPropagation();
         settings.lastStagedText = "";
         settings.stagedText = "";
-        chrome.storage.local.set({ lastStagedText: "", stagedText: "" });
+        safeStorageSet({ lastStagedText: "", stagedText: "" });
         showToast("🗑️ Copied text & staging cleared");
         return;
       }
@@ -1492,8 +1526,9 @@
         e.preventDefault();
         e.stopPropagation();
         settings.ghostMode = !settings.ghostMode;
-        chrome.storage.local.set({ ghostMode: settings.ghostMode });
+        safeStorageSet({ ghostMode: settings.ghostMode });
         updateGhostModeDisplay();
+        syncProbeFeatures();
         showToast(settings.ghostMode ? "👻 Ghost Mode ON" : "👁️ Ghost Mode OFF");
         return;
       }
