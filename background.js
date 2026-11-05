@@ -29,6 +29,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     alwaysActiveTabIds: [],
     forceSelect: false,
     ghostMode: false,
+    stealthHighlightStyle: "invisible",
     vocabHelper: true,
     stagedText: "",
     lastStagedText: ""

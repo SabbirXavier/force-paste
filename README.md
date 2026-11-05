@@ -5,17 +5,17 @@
 **The Universal Browser Freedom & Productivity Suite for All Major Browsers**
 
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-4f46e5.svg?style=flat-square)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![Version](https://img.shields.io/badge/Version-1.7.3-10b981.svg?style=flat-square)](https://github.com/SabbirXavier/force-paste/releases/latest)
+[![Version](https://img.shields.io/badge/Version-1.8.0-10b981.svg?style=flat-square)](https://github.com/SabbirXavier/force-paste/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Universal Browser Support](https://img.shields.io/badge/Universal-Chrome%20%7C%20Firefox%20%7C%20Brave%20%7C%20Edge%20%7C%20Opera-purple.svg?style=flat-square)](https://github.com/SabbirXavier/force-paste)
 
-*A 100% free, open-source browser extension featuring force-pasting with human typing simulation, tab visibility/focus spoofing across multiple windows (Always Active Tab), 4-layer universal text selection & copy unlocking, customizable key mappings, Ghost Mode for screen capture protection, and an instant multi-language dictionary and thesaurus.*
+*A 100% free, open-source browser extension featuring force-pasting with human typing simulation, tab visibility/focus spoofing across multiple windows (Always Active Tab), 4-layer universal text selection & copy unlocking, screen-share stealth selection (invisible highlights), instant popup performance, customizable key mappings, Ghost Mode for screen capture protection, and an instant multi-language dictionary and thesaurus.*
 
 <br/>
 
-[![Download for Chrome / Chromium](https://img.shields.io/badge/Chrome%20%2F%20Brave%20%2F%20Edge-Direct%20Download-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.7.3.zip)
+[![Download for Chrome / Chromium](https://img.shields.io/badge/Chrome%20%2F%20Brave%20%2F%20Edge-Direct%20Download-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.8.0.zip)
 &nbsp;&nbsp;
-[![Download for Firefox](https://img.shields.io/badge/Firefox-Direct%20Download-FF7139?style=for-the-badge&logo=firefox&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.7.3.zip)
+[![Download for Firefox](https://img.shields.io/badge/Firefox-Direct%20Download-FF7139?style=for-the-badge&logo=firefox&logoColor=white)](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.8.0.zip)
 
 <br/>
 
@@ -48,23 +48,27 @@ Every feature comes with an **individual toggle switch** and dedicated controls 
 * **Batch Controls:** One-click **All On**, **All Off**, and **Refresh (🔄)** actions apply across all open tabs simultaneously.
 * **Clean State Synchronization:** Safely updates and cleans up tab IDs upon tab close without accidentally removing active background tabs in other windows.
 
-### 🔓 3. 4-Layer Universal Text Selection & Copy Shield
-Bypasses all four modern web protection mechanisms:
+### 🔓 3. 4-Layer Universal Text Selection & Robust Iframe Unblocker
+Bypasses all four modern web protection mechanisms across the top frame and all nested `<iframe>`s (crucial for proctored exam portals and quiz LMS):
+* **Stealth Selection Mode (Invisible Highlights for Screen Sharing):**
+  * **Invisible / Zero-Highlight Selection (`transparent`):** Select, drag, and copy text completely normally with keyboard or mouse, but **NO visible blue highlight box** appears on screen, Zoom, Microsoft Teams, OBS Studio, screenshots, or display capture.
+  * **Subtle Ghost Tint (`10% opacity`):** Ultra-faint tint visible to human eyes close to a monitor, but filtered out by low-bitrate screen recording codecs.
+  * **Standard Blue:** High-contrast solid blue highlight for everyday browsing.
 * **Layer 1: CSS Protections Neutralized**
   * Injects universal `user-select: text !important` across all DOM nodes and pseudo-elements.
-  * Overrides `-webkit-touch-callout: default !important` and forces visible high-contrast `::selection` highlighting.
+  * Overrides `-webkit-touch-callout: default !important` without breaking interactive buttons, checkboxes, or radio options.
 * **Layer 2: JavaScript Event Interception Neutralized**
   * **Neutralizes `removeAllRanges()` & `empty()`**: Hooks `Selection.prototype` so website scripts cannot wipe highlighted text on mouseup or selectionchange.
   * **Hooks `Event.prototype.preventDefault()`**: Blocks page scripts from cancelling `selectstart`, `copy`, `cut`, and `mousedown`.
   * **Suppresses Anti-Copy Listeners**: Intercepts `selectstart`, `dragstart`, `copy`, and `selectionchange` in the capture phase.
   * **Cleans Inline Attributes**: Strips `unselectable="on"`, `onselectstart="return false"`, and `oncopy` via continuous `MutationObserver`.
 * **Layer 3: Structural & DOM Layout Neutralized**
-  * **Dynamic Transparent Overlay Puncturing**: Automatically detects empty transparent absolute/fixed elements sitting on top of text and disables their `pointer-events` so mouse drags pass directly to the text.
+  * **Non-Destructive Overlay Puncturing**: Neutralizes transparent full-screen barrier elements without interfering with interactive form inputs or radio buttons.
   * **Zero-Width Character Sanitizer**: Automatically cleans invisible noise characters (`\u200B`, `\u200C`, `\u200D`, `\uFEFF`, soft hyphens, etc.) when copying text.
 * **Layer 4: Canvas & SVG Typography Support**
   * **Canvas Document Text Layers**: Makes hidden `.textLayer` overlays (in PDF.js, Google Docs, Scribd, Kindle) 100% visible and selectable.
   * **SVG Typography**: Enables native text selection across SVG `<text>`, `<tspan>`, and `<textPath>` elements.
-* **Alt + C (Force Copy Shortcut)**: Press **Alt + C** anywhere to force-copy clean text or extract plain text directly from the hovered element under your cursor.
+* **Alt + C (Zero-Highlight Hover Copy)**: Press **Alt + C** anywhere to force-copy clean text. If nothing is highlighted, it automatically extracts text from the hovered element under your cursor without creating any visual selection box at all.
 
 ### ⌨️ 4. Editable Keyboard Shortcuts & Key Mapping
 * **Live In-Popup Key Recorder:** Remap shortcuts by clicking any action box and pressing your desired key combination.
@@ -88,9 +92,14 @@ Bypasses all four modern web protection mechanisms:
 
 ### 👻 6. Ghost Mode & Native Capture-Proof Floating Overlay
 * **100% Invisible to Display Capture, Window Capture & Tab Capture:**
-  * **In-Browser Tab/Screen Capture Interception:** Hooks `navigator.mediaDevices.getDisplayMedia(...)` to automatically hide all extension UI, badges, and popups before video frames are captured or recorded by web proctors or meeting apps.
+  * **In-Browser Tab/Screen Capture Interception:** Hooks `navigator.mediaDevices.getDisplayMedia(...)` to automatically hide all extension UI, badges, and popups before video frames are captured or recorded by web proctors or meeting apps. Automatically enforces Invisible Selection mode so no colored highlight boxes appear on screen.
   * **Native Capture-Proof Floating Overlay (`ghost_overlay.bat`):** Runs a transparent, floating desktop teleprompter & auto-typer that utilizes Windows OS API `SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE)` (0x11). It stays floating on top of your physical screen for your eyes only, but is **100% omitted from OBS Studio, Zoom, Teams, Discord, display capture, window capture, and screenshot tools (Snipping Tool / PrintScreen)**.
+  * **🔄 Live Clipboard Teleprompter Sync:** Automatically detects newly copied text (`Alt + C`) and displays it inside the hardware-excluded floating window in real time.
   * **Zero Dependencies:** `ghost_overlay.py` runs natively using Python's built-in standard library (`tkinter` + `ctypes`).
+
+### ⚡ 7. Instant Performance (< 15ms Popup Load)
+* **Lazy DOM Loading:** Tab lists across multiple windows are only rendered when the drawer is explicitly expanded, preventing tab DOM thrashing and ensuring the extension popup opens instantly.
+* **All-Frame Synchronization:** "Unblock All Safely" broadcasts commands to top-level frames and nested iframes simultaneously and stores preferences permanently in local extension storage.
 
 ---
 
@@ -99,7 +108,7 @@ Bypasses all four modern web protection mechanisms:
 ForcePaste works natively across **Chrome, Firefox, Brave, Edge, Opera, Vivaldi, and Arc**.
 
 ### 📥 1. Download
-* Download the universal package: [**`forcepaste-v1.7.3.zip`**](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.7.3.zip)
+* Download the universal package: [**`forcepaste-v1.8.0.zip`**](https://github.com/SabbirXavier/force-paste/releases/latest/download/forcepaste-v1.8.0.zip)
 * Extract (unzip) the file into a folder on your computer.
 
 ---

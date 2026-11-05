@@ -112,11 +112,13 @@ class GhostOverlayApp:
         self.last_target_hwnd = None
         self.is_typing = False
         self.stop_typing = False
+        self.auto_sync_clipboard = True
 
         self.setup_ui()
         self.apply_capture_protection()
         self.setup_drag()
         self.start_hotkey_listener()
+        self.start_clipboard_monitor()
 
     def get_hwnd(self):
         self.root.update_idletasks()
@@ -245,10 +247,26 @@ class GhostOverlayApp:
         self.actions_row = tk.Frame(self.content_frame, bg="#0f172a")
         self.actions_row.pack(fill="x")
 
+        self.btn_auto_clip = tk.Button(
+            self.actions_row,
+            text="🔄 Live Sync: ON",
+            font=("Segoe UI", 8, "bold"),
+            bg="#059669",
+            fg="#ffffff",
+            activebackground="#047857",
+            activeforeground="#ffffff",
+            relief="flat",
+            cursor="hand2",
+            padx=8,
+            pady=3,
+            command=self.toggle_auto_sync
+        )
+        self.btn_auto_clip.pack(side="left", padx=(0, 4))
+
         self.btn_clip = tk.Button(
             self.actions_row,
-            text="📋 Paste Clip",
-            font=("Segoe UI", 8, "bold"),
+            text="📋 Paste",
+            font=("Segoe UI", 8),
             bg="#334155",
             fg="#f8fafc",
             activebackground="#475569",
@@ -324,6 +342,40 @@ class GhostOverlayApp:
                 self.text_box.insert("1.0", clip)
         except Exception:
             pass
+
+    def toggle_auto_sync(self):
+        self.auto_sync_clipboard = not self.auto_sync_clipboard
+        if self.auto_sync_clipboard:
+            self.btn_auto_clip.config(text="🔄 Live Sync: ON", bg="#059669")
+        else:
+            self.btn_auto_clip.config(text="🔄 Live Sync: OFF", bg="#475569")
+
+    def start_clipboard_monitor(self):
+        """Continuously checks Windows clipboard so text copied via Alt+C in browser appears in HUD."""
+        def monitor_loop():
+            last_clip = ""
+            while True:
+                time.sleep(0.3)
+                if not getattr(self, "auto_sync_clipboard", True) or self.is_typing:
+                    continue
+                try:
+                    clip = self.root.clipboard_get()
+                    if clip and clip != last_clip and clip.strip() != "Paste your text or notes here...":
+                        last_clip = clip
+                        self.root.after(0, lambda c=clip: self.on_clipboard_updated(c))
+                except Exception:
+                    pass
+
+        t = threading.Thread(target=monitor_loop, daemon=True)
+        t.start()
+
+    def on_clipboard_updated(self, text):
+        if self.is_typing:
+            return
+        self.text_box.delete("1.0", tk.END)
+        self.text_box.insert("1.0", text)
+        self.lbl_info.config(text="⚡ Live Teleprompter (Updated from clipboard):", fg="#38bdf8")
+        self.root.after(2500, lambda: self.lbl_info.config(text="Text to Auto-Type (Alt+V anywhere to type into active field):", fg="#94a3b8"))
 
     def setup_drag(self):
         """Allows dragging frameless window anywhere on screen."""

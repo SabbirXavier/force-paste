@@ -41,12 +41,14 @@ It also features a tab-specific Always Active visibility spoofer across all open
 • Individual tab switches with batch actions (All On, All Off, Refresh).
 • Overrides document.visibilityState, document.hidden, and document.hasFocus, suppressing blur and visibilitychange events.
 
-🔓 4-LAYER UNIVERSAL TEXT SELECTION & COPY SHIELD
-• Layer 1 (CSS Neutralizer): Injects universal user-select overrides and ensures high-contrast selection highlights.
+🔓 4-LAYER UNIVERSAL TEXT SELECTION & ROBUST IFRAME UNBLOCKER
+• Stealth Selection Mode: 3 customizable highlight styles—Invisible / Zero-Highlight (100% invisible on screen shares, Zoom, Teams, and recordings while remaining copyable), Subtle Ghost Tint (ultra-faint 10% opacity), or Standard High-Contrast Blue.
+• Alt + C Zero-Highlight Hover Copy: Instantly extract and copy text from any hovered question or element without creating any visual selection box.
+• All-Frame Unblocking: Propagates unblock state to nested iframes (critical for exam systems and quiz LMS).
+• Layer 1 (CSS Neutralizer): Injects universal user-select overrides without breaking interactive buttons, checkboxes, or radio options.
 • Layer 2 (Event Shield): Neutralizes removeAllRanges(), empty(), and preventDefault() event blockers on selectstart, copy, cut, and mousedown.
 • Layer 3 (DOM Sanitation): Automatically punctures invisible transparent overlay blockers and sanitizes zero-width junk characters.
 • Layer 4 (Document Support): Unlocks hidden text layers in web document readers (PDF.js, Google Docs, Scribd) and SVG typography.
-• Alt + C Quick Copy: Force-copy clean text or extract text from any hovered element.
 
 ⌨️ FULLY EDITABLE KEYBOARD SHORTCUTS
 • Remap any shortcut directly in the extension popup with live key recording:
@@ -65,7 +67,7 @@ It also features a tab-specific Always Active visibility spoofer across all open
 
 👻 GHOST MODE & SCREEN CAPTURE PROTECTION
 • Web Proctoring Interception: Hooks navigator.mediaDevices.getDisplayMedia to hide all extension badges and UI elements before video frames are captured during tab or screen sharing.
-• Optional Windows OS-level Desktop Overlay (ghost_overlay.bat) utilizing SetWindowDisplayAffinity for 100% invisible display, window, and tab capture protection.
+• Optional Windows OS-level Desktop Overlay (ghost_overlay.bat) utilizing SetWindowDisplayAffinity for 100% invisible display, window, and tab capture protection, featuring real-time Live Clipboard Teleprompter sync.
 
 🔒 100% PRIVATE & OFFLINE
 • Zero telemetry, zero analytics, zero external servers, and zero ads.

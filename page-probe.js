@@ -565,6 +565,7 @@
 
   // 5. FORCE SELECT & COPY ENGINE
   let selectionObserver = null;
+  let stealthSelectionMode = "invisible"; // "invisible" (screen share proof), "subtle", or "standard"
 
   function scrubElementProtections(root = document) {
     if (!featureState.selection) return;
@@ -614,23 +615,42 @@
     } catch (e) {}
   }
 
-  function applySelectionCSS(enable) {
+  function applySelectionCSS(enable, mode) {
+    if (mode) stealthSelectionMode = mode;
     let el = document.getElementById("__forcepaste_unblock_selection_style__");
     if (enable) {
-      if (!el) {
-        el = document.createElement("style");
-        el.id = "__forcepaste_unblock_selection_style__";
-        el.textContent = `
-          /* Category 1: Universal CSS text selection enablement */
-          html, body, *, *::before, *::after {
-            -webkit-user-select: text !important;
-            -moz-user-select: text !important;
-            -ms-user-select: text !important;
-            user-select: text !important;
-            -webkit-touch-callout: default !important;
+      let selectionCSS = "";
+      if (stealthSelectionMode === "invisible") {
+        // 100% Invisible Selection Highlight: Completely hides blue boxes from screen share, OBS, Zoom, Teams, and recordings
+        selectionCSS = `
+          ::selection {
+            background-color: transparent !important;
+            color: inherit !important;
+            text-shadow: none !important;
           }
-
-          /* Force high-contrast visible selection highlight */
+          ::-moz-selection {
+            background-color: transparent !important;
+            color: inherit !important;
+            text-shadow: none !important;
+          }
+        `;
+      } else if (stealthSelectionMode === "subtle") {
+        // Subtle Ghost Tint: Faint 10% opacity, visible to human eye close to screen, compressed away on video streams
+        selectionCSS = `
+          ::selection {
+            background-color: rgba(59, 130, 246, 0.12) !important;
+            color: inherit !important;
+            text-shadow: none !important;
+          }
+          ::-moz-selection {
+            background-color: rgba(59, 130, 246, 0.12) !important;
+            color: inherit !important;
+            text-shadow: none !important;
+          }
+        `;
+      } else {
+        // Standard High-Contrast Blue
+        selectionCSS = `
           ::selection {
             background-color: #3b82f6 !important;
             color: #ffffff !important;
@@ -641,40 +661,58 @@
             color: #ffffff !important;
             text-shadow: none !important;
           }
-
-          /* Category 3: Neutralize pseudo-element transparent overlays */
-          *::before, *::after {
-            pointer-events: none !important;
-          }
-
-          /* Category 3: Neutralize empty overlay barrier elements */
-          div:empty, span:empty,
-          [class*="overlay"]:empty, [class*="shield"]:empty,
-          [class*="protect"]:empty, [class*="watermark"]:empty,
-          [class*="mask"]:empty, [id*="overlay"]:empty,
-          [id*="shield"]:empty, [id*="mask"]:empty {
-            pointer-events: none !important;
-          }
-
-          /* Category 4: Document and Canvas text layers (PDF.js, Scribd, Google Docs, Kindle) */
-          .textLayer, [class*="textLayer"], [class*="TextLayer"],
-          .textLayer *, [class*="textLayer"] *, [class*="TextLayer"] * {
-            opacity: 0.9 !important;
-            pointer-events: auto !important;
-            -webkit-user-select: text !important;
-            user-select: text !important;
-          }
-
-          /* Category 4: SVG Typography vector text selection */
-          svg text, svg tspan, svg textPath {
-            -webkit-user-select: text !important;
-            -moz-user-select: text !important;
-            user-select: text !important;
-            pointer-events: auto !important;
-            cursor: text !important;
-          }
         `;
+      }
+
+      const fullCSS = `
+        /* Category 1: Universal CSS text selection enablement */
+        html, body, *, *::before, *::after {
+          -webkit-user-select: text !important;
+          -moz-user-select: text !important;
+          -ms-user-select: text !important;
+          user-select: text !important;
+          -webkit-touch-callout: default !important;
+        }
+
+        ${selectionCSS}
+
+        /* Category 2: Neutralize transparent full-screen overlay blockers without breaking interactive controls */
+        [class*="overlay"]:not(button):not(input):not(label):not(a):not(select):not(textarea),
+        [class*="shield"]:not(button):not(input):not(label):not(a):not(select):not(textarea),
+        [class*="protect"]:not(button):not(input):not(label):not(a):not(select):not(textarea),
+        [class*="watermark"]:not(button):not(input):not(label):not(a):not(select):not(textarea),
+        [class*="anti-copy"], [id*="anti-copy"],
+        [id*="overlay"]:not(button):not(input):not(label):not(a):not(select):not(textarea),
+        [id*="shield"]:not(button):not(input):not(label):not(a):not(select):not(textarea) {
+          pointer-events: none !important;
+        }
+
+        /* Category 3: Document and Canvas text layers (PDF.js, Scribd, Google Docs, Kindle) */
+        .textLayer, [class*="textLayer"], [class*="TextLayer"],
+        .textLayer *, [class*="textLayer"] *, [class*="TextLayer"] * {
+          opacity: 0.9 !important;
+          pointer-events: auto !important;
+          -webkit-user-select: text !important;
+          user-select: text !important;
+        }
+
+        /* Category 4: SVG Typography vector text selection */
+        svg text, svg tspan, svg textPath {
+          -webkit-user-select: text !important;
+          -moz-user-select: text !important;
+          user-select: text !important;
+          pointer-events: auto !important;
+          cursor: text !important;
+        }
+      `;
+
+      if (!el) {
+        el = document.createElement("style");
+        el.id = "__forcepaste_unblock_selection_style__";
+        el.textContent = fullCSS;
         (document.head || document.documentElement).appendChild(el);
+      } else {
+        el.textContent = fullCSS;
       }
 
       // Nullify inline blockers
@@ -734,9 +772,21 @@
 
   // Listen for control messages from content script
   window.addEventListener("message", (e) => {
-    if (!e.data || e.data.type !== "HT_SET_UNBLOCK_STATE") return;
+    if (!e.data || (e.data.type !== "HT_SET_UNBLOCK_STATE" && e.data.type !== "HT_SET_STEALTH_SELECTION")) return;
 
-    const { key, unblock } = e.data;
+    if (e.data.type === "HT_SET_STEALTH_SELECTION") {
+      stealthSelectionMode = e.data.mode || "invisible";
+      if (featureState.selection) {
+        applySelectionCSS(true, stealthSelectionMode);
+      }
+      return;
+    }
+
+    const { key, unblock, stealthSelectionMode: incomingMode } = e.data;
+    if (incomingMode) {
+      stealthSelectionMode = incomingMode;
+    }
+
     if (key === "all") {
       Object.keys(featureState).forEach((k) => {
         featureState[k] = unblock;
@@ -744,7 +794,7 @@
           detectedRestrictions[k].unblocked = unblock;
         }
       });
-      applySelectionCSS(unblock);
+      applySelectionCSS(unblock, stealthSelectionMode);
       applyContextMenuClean(unblock);
       applyF12Clean(unblock);
       enableAlwaysActive(unblock);
@@ -755,17 +805,17 @@
       featureState.copypaste = unblock;
       if (detectedRestrictions.selection) detectedRestrictions.selection.unblocked = unblock;
       if (detectedRestrictions.copypaste) detectedRestrictions.copypaste.unblocked = unblock;
-      applySelectionCSS(unblock);
+      applySelectionCSS(unblock, stealthSelectionMode);
       if (unblock) applyContextMenuClean(true);
     } else if (featureState[key] !== undefined) {
       featureState[key] = unblock;
       if (detectedRestrictions[key]) {
         detectedRestrictions[key].unblocked = unblock;
       }
-      if (key === "selection") applySelectionCSS(unblock);
+      if (key === "selection") applySelectionCSS(unblock, stealthSelectionMode);
       if (key === "contextmenu") applyContextMenuClean(unblock);
       if (key === "f12") applyF12Clean(unblock);
-      if (key === "copypaste") applySelectionCSS(unblock);
+      if (key === "copypaste") applySelectionCSS(unblock, stealthSelectionMode);
     }
 
     notifyDetection();

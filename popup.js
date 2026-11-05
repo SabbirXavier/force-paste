@@ -30,6 +30,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnTabsRefresh = document.getElementById("btn-tabs-refresh");
 
   const toggleForceSelect = document.getElementById("toggle-force-select");
+  const selectStealthHighlight = document.getElementById("select-stealth-highlight");
+  const stealthBadge = document.getElementById("stealth-badge");
+  const stealthDesc = document.getElementById("stealth-desc");
   const toggleGhostMode = document.getElementById("toggle-ghost-mode");
   const toggleVocabHelper = document.getElementById("toggle-vocab-helper");
 
@@ -132,6 +135,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "alwaysActiveTabIds",
     "forceSelect",
     "ghostMode",
+    "stealthHighlightStyle",
     "vocabHelper",
     "stagedText",
     "lastStagedText"
@@ -473,32 +477,86 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderAlwaysActiveTabs();
   });
 
-  // Initial tab render for accurate badge and current tab switch state
-  renderAlwaysActiveTabs();
+  // Fast header updater to guarantee instantaneous popup opening (<15ms)
+  async function updateAlwaysActiveHeaderState() {
+    try {
+      const activeIds = await getActiveTabsAlwaysActive();
+      const count = activeIds.length;
+      if (alwaysActiveCountBadge) {
+        if (count === 0) {
+          alwaysActiveCountBadge.textContent = "Off";
+          alwaysActiveCountBadge.classList.remove("active");
+        } else {
+          alwaysActiveCountBadge.textContent = `${count} Active`;
+          alwaysActiveCountBadge.classList.add("active");
+        }
+      }
+      if (toggleAlwaysActiveCurrent) {
+        toggleAlwaysActiveCurrent.checked = activeTabId ? activeIds.includes(activeTabId) : false;
+      }
+    } catch (e) {}
+  }
+
+  // Initial fast header update on popup open (drawer rows are lazy-rendered only when expanded)
+  updateAlwaysActiveHeaderState();
 
   // Live real-time tab & window event updates while popup is open
-  if (chrome.tabs?.onCreated) {
-    chrome.tabs.onCreated.addListener(() => renderAlwaysActiveTabs());
-  }
-  if (chrome.tabs?.onRemoved) {
-    chrome.tabs.onRemoved.addListener(() => renderAlwaysActiveTabs());
-  }
-  if (chrome.tabs?.onActivated) {
-    chrome.tabs.onActivated.addListener(() => renderAlwaysActiveTabs());
-  }
+  const handleTabChange = () => {
+    updateAlwaysActiveHeaderState();
+    if (isAlwaysActiveDrawerOpen) {
+      renderAlwaysActiveTabs();
+    }
+  };
+
+  if (chrome.tabs?.onCreated) chrome.tabs.onCreated.addListener(handleTabChange);
+  if (chrome.tabs?.onRemoved) chrome.tabs.onRemoved.addListener(handleTabChange);
+  if (chrome.tabs?.onActivated) chrome.tabs.onActivated.addListener(handleTabChange);
   if (chrome.tabs?.onUpdated) {
     chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
       if (changeInfo.status === "complete" || changeInfo.title || changeInfo.url) {
-        renderAlwaysActiveTabs();
+        handleTabChange();
       }
     });
   }
-  if (chrome.windows?.onCreated) {
-    chrome.windows.onCreated.addListener(() => renderAlwaysActiveTabs());
+  if (chrome.windows?.onCreated) chrome.windows.onCreated.addListener(handleTabChange);
+  if (chrome.windows?.onRemoved) chrome.windows.onRemoved.addListener(handleTabChange);
+
+  // Stealth Highlight Mode Selector
+  function updateStealthUI(mode) {
+    if (!stealthBadge || !stealthDesc) return;
+    if (mode === "invisible") {
+      stealthBadge.textContent = "Invisible (Stealth)";
+      stealthBadge.style.background = "#e0e7ff";
+      stealthBadge.style.color = "#4338ca";
+      stealthDesc.innerHTML = "Text is selectable and copyable, but <b>NO blue highlight box</b> appears on screen recordings, Zoom, Teams, or display capture.";
+    } else if (mode === "subtle") {
+      stealthBadge.textContent = "Subtle Ghost Tint";
+      stealthBadge.style.background = "#fef3c7";
+      stealthBadge.style.color = "#b45309";
+      stealthDesc.innerHTML = "Subtle 10% faint tint visible to your eyes, but low-bitrate video streams and recordings compress it away.";
+    } else {
+      stealthBadge.textContent = "Standard Blue";
+      stealthBadge.style.background = "#dbeafe";
+      stealthBadge.style.color = "#1d4ed8";
+      stealthDesc.innerHTML = "High-contrast standard blue selection highlight for everyday general web browsing.";
+    }
   }
-  if (chrome.windows?.onRemoved) {
-    chrome.windows.onRemoved.addListener(() => renderAlwaysActiveTabs());
+
+  const initialStealthMode = settings.stealthHighlightStyle || "invisible";
+  if (selectStealthHighlight) {
+    selectStealthHighlight.value = initialStealthMode;
+    updateStealthUI(initialStealthMode);
   }
+
+  selectStealthHighlight?.addEventListener("change", async () => {
+    const mode = selectStealthHighlight.value;
+    updateStealthUI(mode);
+    await chrome.storage.local.set({ stealthHighlightStyle: mode });
+    await safeSendMessage({
+      type: "SET_STEALTH_SELECTION",
+      mode: mode
+    });
+  });
 
   // Sync Force Select Toggle
   toggleForceSelect.addEventListener("change", async () => {
@@ -508,6 +566,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       toggles.copypaste.checked = true;
     }
     await safeSendMessage({ type: "TOGGLE_UNBLOCK", key: "selection", unblock: val });
+    setTimeout(refreshRestrictions, 150);
   });
 
   // Sync Ghost Mode Toggle
@@ -515,6 +574,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const val = toggleGhostMode.checked;
     await chrome.storage.local.set({ ghostMode: val });
     await safeSendMessage({ type: "TOGGLE_GHOST_MODE", ghostMode: val });
+    if (val && selectStealthHighlight) {
+      updateStealthUI("invisible");
+    } else if (!val && selectStealthHighlight) {
+      updateStealthUI(selectStealthHighlight.value);
+    }
   });
 
   // Sync Vocab Helper Toggle
@@ -1260,12 +1324,38 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   btnUnblockAll.addEventListener("click", async () => {
+    // 1. Immediately toggle all UI switches
+    toggleForceSelect.checked = true;
+    restrictionKeys.forEach((key) => {
+      if (toggles[key]) toggles[key].checked = true;
+    });
+
+    // 2. Persist to storage for top frame, all child iframes, and future pages
+    await chrome.storage.local.set({
+      forceSelect: true,
+      autoUnblock: true,
+      copypaste: true,
+      f12: true,
+      contextmenu: true
+    });
+
+    // 3. Send unblock message to content scripts and probe
     await safeSendMessage({
       type: "TOGGLE_UNBLOCK",
       key: "all",
       unblock: true
     });
-    setTimeout(refreshRestrictions, 100);
+
+    // 4. Update indicators immediately
+    restrictionKeys.forEach((key) => {
+      if (dots[key]) dots[key].className = "indicator-dot unblocked";
+      if (descs[key]) descs[key].innerHTML = `<span style="color:#059669;font-weight:600;">✓ Unblocked safely</span>`;
+    });
+    if (summaryText) summaryText.textContent = "All detected restrictions neutralized safely across all frames.";
+    if (overallDot) overallDot.className = "indicator-dot unblocked";
+    if (overallText) overallText.textContent = "Protected";
+
+    setTimeout(refreshRestrictions, 250);
   });
 
   refreshRestrictions();

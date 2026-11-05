@@ -769,6 +769,22 @@
       <div class="feature-toggle-desc">
         Neutralizes all 4 layers: user-select blockers, transparent overlays, canvas/PDF text layers, SVG text, selection wiping (removeAllRanges), and cleans noise characters. Press <b>Alt + C</b> to force-copy anywhere.
       </div>
+
+      <!-- Stealth Highlight Mode Selector -->
+      <div style="margin-top: 8px; padding: 8px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+          <span style="font-size: 11px; font-weight: 700; color: #334155;">Selection Highlight Visibility</span>
+          <span class="active-tabs-badge" id="stealth-badge" style="background:#e0e7ff; color:#4338ca;">Invisible (Stealth)</span>
+        </div>
+        <select id="select-stealth-highlight" style="width: 100%; padding: 5px 8px; font-size: 11px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #1e293b; outline: none; cursor: pointer;">
+          <option value="invisible">Invisible / Zero-Highlight (Screen Share & Exam Proof)</option>
+          <option value="subtle">Subtle Ghost Tint (Ultra-Faint 10% Opacity)</option>
+          <option value="standard">Standard High-Contrast (Solid Blue Highlight)</option>
+        </select>
+        <div style="font-size: 10px; color: #64748b; margin-top: 4px; line-height: 1.35;" id="stealth-desc">
+          Text is selectable and copyable, but <b>NO blue highlight box</b> appears on screen recordings, Zoom, Teams, or display capture.
+        </div>
+      </div>
     </div>
 
     <!-- Feature 4: Ghost Mode Toggle (Screen Share / Recording Safe) -->
@@ -783,11 +799,11 @@
         </label>
       </div>
       <div class="feature-toggle-desc">
-        Hides all extension badges, pop-ups, and floating UI from screen capture, window capture, and tab capture (getDisplayMedia). Press <b>Alt + H</b> to toggle on/off.
+        Hides all extension badges, pop-ups, and floating UI from screen capture, window capture, and tab capture (getDisplayMedia). Enforces invisible highlights on selection. Press <b>Alt + H</b> to toggle on/off.
       </div>
       <div style="margin-top: 8px; padding: 7px 9px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 11px; color: #334155; line-height: 1.35;">
-        🛡️ <b>Native Capture-Proof Floating Overlay:</b><br/>
-        Double-click <code>ghost_overlay.bat</code> to launch a floating teleprompter visible to your eyes, but 100% invisible to OBS, Zoom, Teams, Discord, and Display Captures via Windows <code>SetWindowDisplayAffinity</code>!
+        🛡️ <b>Hardware-Level Invisible Teleprompter:</b><br/>
+        Double-click <code>ghost_overlay.bat</code> to launch the Windows <code>WDA_EXCLUDEFROMCAPTURE</code> floating HUD. Visible to your physical eyes, but 100% invisible to OBS, Zoom, Teams, Discord, and screen recorders!
       </div>
     </div>
 

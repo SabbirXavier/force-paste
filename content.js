@@ -19,6 +19,7 @@
     forceSelect: false,
     vocabHelper: true,
     ghostMode: false,
+    stealthHighlightStyle: "invisible",
     lastStagedText: ""
   };
 
@@ -79,8 +80,26 @@
   });
 
   function syncProbeFeatures() {
+    const effectiveHighlightStyle = settings.ghostMode ? "invisible" : (settings.stealthHighlightStyle || "invisible");
     window.postMessage({ type: "HT_SET_UNBLOCK_STATE", key: "alwaysActive", unblock: !!settings.alwaysActive }, "*");
-    window.postMessage({ type: "HT_SET_UNBLOCK_STATE", key: "selection", unblock: !!settings.forceSelect }, "*");
+    window.postMessage({
+      type: "HT_SET_UNBLOCK_STATE",
+      key: "selection",
+      unblock: !!settings.forceSelect,
+      stealthSelectionMode: effectiveHighlightStyle
+    }, "*");
+
+    // Also forward to nested iframes
+    for (let i = 0; i < window.frames.length; i++) {
+      try {
+        window.frames[i].postMessage({
+          type: "HT_SET_UNBLOCK_STATE",
+          key: "selection",
+          unblock: !!settings.forceSelect,
+          stealthSelectionMode: effectiveHighlightStyle
+        }, "*");
+      } catch (e) {}
+    }
   }
 
   // Listen for restrictions updates from page-probe.js (MAIN world)
@@ -89,7 +108,13 @@
     currentRestrictions = e.data.restrictions;
 
     if (settings.autoUnblock) {
-      window.postMessage({ type: "HT_SET_UNBLOCK_STATE", key: "all", unblock: true }, "*");
+      const effectiveHighlightStyle = settings.ghostMode ? "invisible" : (settings.stealthHighlightStyle || "invisible");
+      window.postMessage({
+        type: "HT_SET_UNBLOCK_STATE",
+        key: "all",
+        unblock: true,
+        stealthSelectionMode: effectiveHighlightStyle
+      }, "*");
     }
   });
 
@@ -114,19 +139,60 @@
     if (msg.type === "TOGGLE_UNBLOCK") {
       if (msg.key === "alwaysActive") {
         settings.alwaysActive = !!msg.unblock;
+      } else if (msg.key === "all") {
+        settings.forceSelect = !!msg.unblock;
+        settings.autoUnblock = !!msg.unblock;
+      } else if (msg.key === "selection" || msg.key === "copypaste") {
+        settings.forceSelect = !!msg.unblock;
       }
+
+      const effectiveHighlightStyle = settings.ghostMode ? "invisible" : (settings.stealthHighlightStyle || "invisible");
       window.postMessage({
         type: "HT_SET_UNBLOCK_STATE",
         key: msg.key,
-        unblock: msg.unblock
+        unblock: msg.unblock,
+        stealthSelectionMode: effectiveHighlightStyle
       }, "*");
+
+      // Propagate unblock state to all nested iframes (critical for exam questions inside frames)
+      for (let i = 0; i < window.frames.length; i++) {
+        try {
+          window.frames[i].postMessage({
+            type: "HT_SET_UNBLOCK_STATE",
+            key: msg.key,
+            unblock: msg.unblock,
+            stealthSelectionMode: effectiveHighlightStyle
+          }, "*");
+        } catch (e) {}
+      }
+
       sendResponse({ success: true });
+      return true;
+    }
+
+    if (msg.type === "SET_STEALTH_SELECTION") {
+      settings.stealthHighlightStyle = msg.mode || "invisible";
+      const effectiveHighlightStyle = settings.ghostMode ? "invisible" : settings.stealthHighlightStyle;
+      window.postMessage({
+        type: "HT_SET_STEALTH_SELECTION",
+        mode: effectiveHighlightStyle
+      }, "*");
+      for (let i = 0; i < window.frames.length; i++) {
+        try {
+          window.frames[i].postMessage({
+            type: "HT_SET_STEALTH_SELECTION",
+            mode: effectiveHighlightStyle
+          }, "*");
+        } catch (e) {}
+      }
+      sendResponse({ success: true, mode: effectiveHighlightStyle });
       return true;
     }
 
     if (msg.type === "TOGGLE_GHOST_MODE") {
       settings.ghostMode = !!msg.ghostMode;
       updateGhostModeDisplay();
+      syncProbeFeatures();
       sendResponse({ success: true, ghostMode: settings.ghostMode });
       return true;
     }
@@ -1286,19 +1352,27 @@
         .replace(/[\u200B\u200C\u200D\uFEFF\u00AD\u2060\u200E\u200F]/g, "")
         .replace(/\u00A0/g, " ");
 
+      const onCopiedSuccess = () => {
+        if (!settings.ghostMode) {
+          showToast("📋 Clean text copied!");
+        } else {
+          console.debug("[ForcePaste] Text copied quietly in Ghost Mode");
+        }
+      };
+
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(clean).then(() => {
-          showToast("📋 Clean text copied!");
-        }).catch(() => {
+        navigator.clipboard.writeText(clean).then(onCopiedSuccess).catch(() => {
           copyTextFallback(clean);
-          showToast("📋 Clean text copied!");
+          onCopiedSuccess();
         });
       } else {
         copyTextFallback(clean);
-        showToast("📋 Clean text copied!");
+        onCopiedSuccess();
       }
     } else {
-      showToast("ℹ️ Highlight text or hover an element to copy");
+      if (!settings.ghostMode) {
+        showToast("ℹ️ Highlight text or hover an element to copy");
+      }
     }
   }
 
