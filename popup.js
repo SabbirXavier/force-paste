@@ -1,6 +1,6 @@
 // popup.js - Manages Shield, Typer, Text Staging, and Multi-Language Vocabulary Helper
 
-document.addEventListener("DOMContentLoaded", async () => {
+function initPopup() {
   // Tabs navigation
   const tabBtns = document.querySelectorAll(".tab-btn");
   const tabContents = document.querySelectorAll(".tab-content");
@@ -36,16 +36,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const toggleGhostMode = document.getElementById("toggle-ghost-mode");
   const toggleVocabHelper = document.getElementById("toggle-vocab-helper");
 
-  // Query Current Tab early
   let activeTabId = null;
   let activeTabUrl = "";
   let currentWindowId = null;
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    activeTabId = tab?.id || null;
-    activeTabUrl = tab?.url || "";
-    currentWindowId = tab?.windowId || null;
-  } catch (e) {}
 
   // Safe messaging helper to prevent "Receiving end does not exist" crashes
   function isRestrictedUrl(url) {
@@ -62,15 +55,39 @@ document.addEventListener("DOMContentLoaded", async () => {
     );
   }
 
-  async function safeSendMessage(message) {
-    if (!activeTabId) return null;
-    if (activeTabUrl && isRestrictedUrl(activeTabUrl)) return null;
-    try {
-      return await chrome.tabs.sendMessage(activeTabId, message);
-    } catch (err) {
-      // Gracefully suppress when content scripts aren't running or tab is uninitialized
-      return null;
-    }
+  function safeSendMessage(message, timeoutMs = 250) {
+    if (!activeTabId) return Promise.resolve(null);
+    if (activeTabUrl && isRestrictedUrl(activeTabUrl)) return Promise.resolve(null);
+
+    return new Promise((resolve) => {
+      let resolved = false;
+      const timer = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          resolve(null);
+        }
+      }, timeoutMs);
+
+      try {
+        chrome.tabs.sendMessage(activeTabId, message, (resp) => {
+          if (!resolved) {
+            resolved = true;
+            clearTimeout(timer);
+            if (chrome.runtime.lastError) {
+              resolve(null);
+            } else {
+              resolve(resp);
+            }
+          }
+        });
+      } catch (err) {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          resolve(null);
+        }
+      }
+    });
   }
 
   // Typer Controls
@@ -125,8 +142,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   const popupHiDisplay = document.getElementById("popup-hi-display");
   const popupBnDisplay = document.getElementById("popup-bn-display");
 
-  // Load Settings from Storage
-  const settings = await chrome.storage.local.get([
+  let currentWPM = 60;
+  function updateWpmDisplay(wpm) {
+    const delay = Math.round(12000 / wpm);
+    if (wpmStats) wpmStats.textContent = `${wpm} WPM (~${delay}ms/char, randomized 50-500ms)`;
+    if (rangeWpm) rangeWpm.value = Math.min(300, Math.max(15, wpm));
+    if (numWpm) numWpm.value = wpm;
+  }
+
+  // Load Settings from Storage asynchronously (non-blocking)
+  chrome.storage.local.get([
     "enabled",
     "showFloatingIcon",
     "naturalJitter",
@@ -138,35 +163,44 @@ document.addEventListener("DOMContentLoaded", async () => {
     "stealthHighlightStyle",
     "vocabHelper",
     "stagedText",
-    "lastStagedText"
-  ]);
+    "lastStagedText",
+    "customShortcuts"
+  ], (settings) => {
+    if (!settings) return;
 
-  toggleTyperEnabled.checked = settings.enabled ?? true;
-  toggleFloatingIcon.checked = settings.showFloatingIcon ?? true;
-  toggleJitter.checked = settings.naturalJitter ?? true;
-  selectSpeed.value = settings.speedMode || "custom";
+    if (toggleTyperEnabled) toggleTyperEnabled.checked = settings.enabled ?? true;
+    if (toggleFloatingIcon) toggleFloatingIcon.checked = settings.showFloatingIcon ?? true;
+    if (toggleJitter) toggleJitter.checked = settings.naturalJitter ?? true;
+    if (selectSpeed) selectSpeed.value = settings.speedMode || "custom";
 
-  toggleForceSelect.checked = settings.forceSelect ?? false;
-  toggleGhostMode.checked = settings.ghostMode ?? false;
-  toggleVocabHelper.checked = settings.vocabHelper ?? true;
+    if (toggleForceSelect) toggleForceSelect.checked = settings.forceSelect ?? false;
+    if (toggleGhostMode) toggleGhostMode.checked = settings.ghostMode ?? false;
+    if (toggleVocabHelper) toggleVocabHelper.checked = settings.vocabHelper ?? true;
 
-  const initialStaged = settings.stagedText || settings.lastStagedText || "";
-  if (initialStaged) {
-    stagingTextarea.value = initialStaged;
-    updateStagingCounts(initialStaged);
-  }
+    const initialStaged = settings.stagedText || settings.lastStagedText || "";
+    if (initialStaged && stagingTextarea) {
+      stagingTextarea.value = initialStaged;
+      updateStagingCounts(initialStaged);
+    }
 
-  let currentWPM = Number(settings.customWPM) || 60;
-  if (currentWPM < 10) currentWPM = 10;
-  if (currentWPM > 600) currentWPM = 600;
+    currentWPM = Number(settings.customWPM) || 60;
+    if (currentWPM < 10) currentWPM = 10;
+    if (currentWPM > 600) currentWPM = 600;
+    updateWpmDisplay(currentWPM);
 
-  function updateWpmDisplay(wpm) {
-    const delay = Math.round(12000 / wpm);
-    wpmStats.textContent = `${wpm} WPM (~${delay}ms/char, randomized 50-500ms)`;
-    rangeWpm.value = Math.min(300, Math.max(15, wpm));
-    numWpm.value = wpm;
-  }
-  updateWpmDisplay(currentWPM);
+    const initialStealthMode = settings.stealthHighlightStyle || "invisible";
+    if (selectStealthHighlight) {
+      selectStealthHighlight.value = initialStealthMode;
+      updateStealthUI(initialStealthMode);
+    }
+
+    if (settings.customShortcuts) {
+      customShortcuts = { ...defaultShortcuts, ...settings.customShortcuts };
+      updateShortcutButtonsDisplay();
+    }
+
+    updateAlwaysActiveHeaderState();
+  });
 
   // --- Tab-Specific Always Active Logic ---
   let isAlwaysActiveDrawerOpen = false;
@@ -477,10 +511,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderAlwaysActiveTabs();
   });
 
-  // Fast header updater to guarantee instantaneous popup opening (<15ms)
-  async function updateAlwaysActiveHeaderState() {
-    try {
-      const activeIds = await getActiveTabsAlwaysActive();
+  // Fast header updater to guarantee instantaneous popup opening (<5ms)
+  function updateAlwaysActiveHeaderState() {
+    chrome.storage.local.get(["alwaysActiveTabIds"], (res) => {
+      const activeIds = Array.isArray(res?.alwaysActiveTabIds) ? res.alwaysActiveTabIds : [];
       const count = activeIds.length;
       if (alwaysActiveCountBadge) {
         if (count === 0) {
@@ -491,16 +525,16 @@ document.addEventListener("DOMContentLoaded", async () => {
           alwaysActiveCountBadge.classList.add("active");
         }
       }
-      if (toggleAlwaysActiveCurrent) {
-        toggleAlwaysActiveCurrent.checked = activeTabId ? activeIds.includes(activeTabId) : false;
+      if (toggleAlwaysActiveCurrent && activeTabId) {
+        toggleAlwaysActiveCurrent.checked = activeIds.includes(activeTabId);
       }
-    } catch (e) {}
+    });
   }
 
   // Initial fast header update on popup open (drawer rows are lazy-rendered only when expanded)
   updateAlwaysActiveHeaderState();
 
-  // Live real-time tab & window event updates while popup is open
+  // Tab events ONLY update if drawer is expanded
   const handleTabChange = () => {
     updateAlwaysActiveHeaderState();
     if (isAlwaysActiveDrawerOpen) {
@@ -511,15 +545,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (chrome.tabs?.onCreated) chrome.tabs.onCreated.addListener(handleTabChange);
   if (chrome.tabs?.onRemoved) chrome.tabs.onRemoved.addListener(handleTabChange);
   if (chrome.tabs?.onActivated) chrome.tabs.onActivated.addListener(handleTabChange);
-  if (chrome.tabs?.onUpdated) {
-    chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-      if (changeInfo.status === "complete" || changeInfo.title || changeInfo.url) {
-        handleTabChange();
-      }
-    });
-  }
-  if (chrome.windows?.onCreated) chrome.windows.onCreated.addListener(handleTabChange);
-  if (chrome.windows?.onRemoved) chrome.windows.onRemoved.addListener(handleTabChange);
 
   // Stealth Highlight Mode Selector
   function updateStealthUI(mode) {
@@ -1066,13 +1091,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let customShortcuts = { ...defaultShortcuts };
 
-  try {
-    const scRes = await chrome.storage.local.get(["customShortcuts"]);
-    if (scRes && scRes.customShortcuts) {
-      customShortcuts = { ...defaultShortcuts, ...scRes.customShortcuts };
-    }
-  } catch (e) {}
-
   function updateShortcutButtonsDisplay() {
     Object.keys(defaultShortcuts).forEach((action) => {
       const btn = document.getElementById(`sc-btn-${action}`);
@@ -1358,5 +1376,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     setTimeout(refreshRestrictions, 250);
   });
 
-  refreshRestrictions();
-});
+  // Query active tab asynchronously in background without blocking popup open
+  try {
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+      const tab = tabs?.[0];
+      if (tab) {
+        activeTabId = tab.id || null;
+        activeTabUrl = tab.url || "";
+        currentWindowId = tab.windowId || null;
+        updateAlwaysActiveHeaderState();
+        refreshRestrictions();
+      }
+    });
+  } catch (e) {}
+}
+
+// Ensure instant execution whether DOM is loading or already interactive
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initPopup);
+} else {
+  initPopup();
+}

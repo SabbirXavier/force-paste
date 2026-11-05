@@ -1944,7 +1944,7 @@
 
   // Highlight Text Trigger: Show ONLY the "Define" Badge until clicked!
   document.addEventListener("mouseup", (e) => {
-    if (!settings.vocabHelper || settings.ghostMode) return;
+    if (!settings.vocabHelper || settings.ghostMode || settings.stealthHighlightStyle === "invisible") return;
     if (host.contains(e.target)) return;
 
     setTimeout(() => {
