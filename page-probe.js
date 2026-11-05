@@ -565,7 +565,7 @@
 
   // 5. FORCE SELECT & COPY ENGINE
   let selectionObserver = null;
-  let stealthSelectionMode = "invisible"; // "invisible" (screen share proof), "subtle", or "standard"
+  let stealthSelectionMode = "standard"; // "standard" (normal), "invisible" (screen share proof), or "subtle"
 
   function scrubElementProtections(root = document) {
     if (!featureState.selection) return;
@@ -797,7 +797,7 @@
     if (!e.data || (e.data.type !== "HT_SET_UNBLOCK_STATE" && e.data.type !== "HT_SET_STEALTH_SELECTION")) return;
 
     if (e.data.type === "HT_SET_STEALTH_SELECTION") {
-      stealthSelectionMode = e.data.mode || "invisible";
+      stealthSelectionMode = e.data.mode || "standard";
       if (stealthSelectionMode === "invisible" || stealthSelectionMode === "subtle" || featureState.selection) {
         applySelectionCSS(true, stealthSelectionMode);
       } else {

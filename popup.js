@@ -188,7 +188,9 @@ function initPopup() {
     if (currentWPM > 600) currentWPM = 600;
     updateWpmDisplay(currentWPM);
 
-    const initialStealthMode = settings.stealthHighlightStyle || "invisible";
+    const initialStealthMode = settings.ghostMode
+      ? "invisible"
+      : (settings.stealthHighlightStyle || "standard");
     if (selectStealthHighlight) {
       selectStealthHighlight.value = initialStealthMode;
       updateStealthUI(initialStealthMode);
@@ -560,10 +562,10 @@ function initPopup() {
       stealthBadge.style.color = "#b45309";
       stealthDesc.innerHTML = "Subtle 10% faint tint visible to your eyes, but low-bitrate video streams and recordings compress it away.";
     } else {
-      stealthBadge.textContent = "Standard Blue";
+      stealthBadge.textContent = "Standard (Normal)";
       stealthBadge.style.background = "#dbeafe";
       stealthBadge.style.color = "#1d4ed8";
-      stealthDesc.innerHTML = "High-contrast standard blue selection highlight for everyday general web browsing.";
+      stealthDesc.innerHTML = "Normal standard visible blue selection highlight for everyday general web browsing.";
     }
   }
 
@@ -588,16 +590,31 @@ function initPopup() {
     setTimeout(refreshRestrictions, 150);
   });
 
-  // Sync Ghost Mode Toggle
+  // Sync Ghost Mode Toggle (Enabling activates Invisible Stealth selection, Disabling restores normal selection)
   toggleGhostMode.addEventListener("change", async () => {
     const val = toggleGhostMode.checked;
-    await chrome.storage.local.set({ ghostMode: val });
-    await safeSendMessage({ type: "TOGGLE_GHOST_MODE", ghostMode: val });
-    if (val && selectStealthHighlight) {
-      updateStealthUI("invisible");
-    } else if (!val && selectStealthHighlight) {
-      updateStealthUI(selectStealthHighlight.value);
+    const targetMode = val ? "invisible" : "standard";
+
+    if (selectStealthHighlight) {
+      selectStealthHighlight.value = targetMode;
+      updateStealthUI(targetMode);
     }
+
+    await chrome.storage.local.set({
+      ghostMode: val,
+      stealthHighlightStyle: targetMode
+    });
+
+    await safeSendMessage({
+      type: "TOGGLE_GHOST_MODE",
+      ghostMode: val,
+      stealthHighlightStyle: targetMode
+    });
+
+    await safeSendMessage({
+      type: "SET_STEALTH_SELECTION",
+      mode: targetMode
+    });
   });
 
   // Sync Vocab Helper Toggle

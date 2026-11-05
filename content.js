@@ -40,7 +40,7 @@
     forceSelect: false,
     vocabHelper: false,
     ghostMode: false,
-    stealthHighlightStyle: "invisible",
+    stealthHighlightStyle: "standard",
     lastStagedText: ""
   };
 
@@ -104,7 +104,7 @@
   }
 
   function syncProbeFeatures() {
-    const effectiveHighlightStyle = settings.ghostMode ? "invisible" : (settings.stealthHighlightStyle || "invisible");
+    const effectiveHighlightStyle = settings.ghostMode ? "invisible" : (settings.stealthHighlightStyle || "standard");
     const shouldEnableSelection = !!settings.forceSelect || settings.ghostMode || effectiveHighlightStyle === "invisible" || effectiveHighlightStyle === "subtle";
     window.postMessage({ type: "HT_SET_UNBLOCK_STATE", key: "alwaysActive", unblock: !!settings.alwaysActive }, "*");
     window.postMessage({
@@ -138,7 +138,7 @@
       if (now - lastAutoUnblockTime < 2000) return;
       lastAutoUnblockTime = now;
 
-      const effectiveHighlightStyle = settings.ghostMode ? "invisible" : (settings.stealthHighlightStyle || "invisible");
+      const effectiveHighlightStyle = settings.ghostMode ? "invisible" : (settings.stealthHighlightStyle || "standard");
       window.postMessage({
         type: "HT_SET_UNBLOCK_STATE",
         key: "all",
@@ -176,7 +176,7 @@
         settings.forceSelect = !!msg.unblock;
       }
 
-      const effectiveHighlightStyle = settings.ghostMode ? "invisible" : (settings.stealthHighlightStyle || "invisible");
+      const effectiveHighlightStyle = settings.ghostMode ? "invisible" : (settings.stealthHighlightStyle || "standard");
       window.postMessage({
         type: "HT_SET_UNBLOCK_STATE",
         key: msg.key,
@@ -221,9 +221,10 @@
 
     if (msg.type === "TOGGLE_GHOST_MODE") {
       settings.ghostMode = !!msg.ghostMode;
+      settings.stealthHighlightStyle = settings.ghostMode ? "invisible" : (msg.stealthHighlightStyle || "standard");
       updateGhostModeDisplay();
       syncProbeFeatures();
-      sendResponse({ success: true, ghostMode: settings.ghostMode });
+      sendResponse({ success: true, ghostMode: settings.ghostMode, stealthHighlightStyle: settings.stealthHighlightStyle });
       return true;
     }
 
@@ -1526,10 +1527,14 @@
         e.preventDefault();
         e.stopPropagation();
         settings.ghostMode = !settings.ghostMode;
-        safeStorageSet({ ghostMode: settings.ghostMode });
+        settings.stealthHighlightStyle = settings.ghostMode ? "invisible" : "standard";
+        safeStorageSet({
+          ghostMode: settings.ghostMode,
+          stealthHighlightStyle: settings.stealthHighlightStyle
+        });
         updateGhostModeDisplay();
         syncProbeFeatures();
-        showToast(settings.ghostMode ? "👻 Ghost Mode ON" : "👁️ Ghost Mode OFF");
+        showToast(settings.ghostMode ? "👻 Ghost Mode ON (Invisible Selection)" : "👁️ Ghost Mode OFF (Normal Selection)");
         return;
       }
     },
