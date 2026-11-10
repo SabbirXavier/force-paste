@@ -897,6 +897,25 @@
     return el.isContentEditable || el.getAttribute("contenteditable") === "true";
   }
 
+  function isCodeEditor(el) {
+    if (!el) return false;
+    if (el.nodeType === 3) el = el.parentNode;
+    return !!(el && el.closest && el.closest('.ace_editor, .ace_text-input, .monaco-editor, .inputarea, .CodeMirror, .cm-editor'));
+  }
+
+  function isEditorOrInput(node) {
+    if (!node) return false;
+    if (node.nodeType === 3) node = node.parentNode;
+    if (!node || typeof node.closest !== "function") return false;
+    return !!node.closest(
+      'input, textarea, select, button, [contenteditable="true"], [role="textbox"], ' +
+      '.ace_editor, .ace_line, .ace_scroller, .ace_content, ' +
+      '.monaco-editor, .view-line, .view-lines, .lines-content, ' +
+      '.CodeMirror, .CodeMirror-scroll, .CodeMirror-line, ' +
+      '.cm-editor, .cm-content, .cm-scroller'
+    );
+  }
+
   function updateButtonPosition(target) {
     // If Ghost Mode is active, NEVER show on-screen UI
     if (settings.ghostMode) {
@@ -949,9 +968,12 @@
       if (e.target && isEditable(e.target)) {
         activeElement = e.target;
         if (hideTimeout) clearTimeout(hideTimeout);
-        if (settings.enabled && settings.showFloatingIcon && !settings.ghostMode && !isTyping) {
+        // Do not spawn floating button over code editors (Ace, Monaco, CodeMirror) - user can type seamlessly or use Alt+V
+        if (settings.enabled && settings.showFloatingIcon && !settings.ghostMode && !isTyping && !isCodeEditor(e.target)) {
           mountHost();
           updateButtonPosition(activeElement);
+        } else {
+          hideButton();
         }
       }
     },
@@ -1546,6 +1568,7 @@
     window.addEventListener(
       evtType,
       (e) => {
+        if (isEditorOrInput(e.target) || isEditorOrInput(document.activeElement)) return;
         if (settings.forceSelect || settings.autoUnblock) {
           e.stopPropagation();
         }

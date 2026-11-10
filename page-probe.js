@@ -18,6 +18,20 @@
   // UNIVERSAL SELECTION & ANTI-COPY NEUTRALIZERS (MAIN WORLD)
   // =========================================================================
 
+  // Helper: check if element is a form input or code editor (Ace, Monaco, CodeMirror, rich text)
+  function isEditorOrInput(node) {
+    if (!node) return false;
+    if (node.nodeType === 3) node = node.parentNode;
+    if (!node || typeof node.closest !== "function") return false;
+    return !!node.closest(
+      'input, textarea, select, button, [contenteditable="true"], [role="textbox"], ' +
+      '.ace_editor, .ace_line, .ace_scroller, .ace_content, ' +
+      '.monaco-editor, .view-line, .view-lines, .lines-content, ' +
+      '.CodeMirror, .CodeMirror-scroll, .CodeMirror-line, ' +
+      '.cm-editor, .cm-content, .cm-scroller'
+    );
+  }
+
   // 1. Hook Selection.prototype.removeAllRanges & empty
   // Stops anti-copy scripts from programmatically wiping user's text selection
   const origRemoveAllRanges = Selection.prototype.removeAllRanges;
@@ -25,6 +39,9 @@
 
   Selection.prototype.removeAllRanges = function () {
     if (featureState.selection) {
+      if (isEditorOrInput(document.activeElement)) {
+        try { return origRemoveAllRanges.apply(this, arguments); } catch (e) { return undefined; }
+      }
       if (this.rangeCount > 0 && !this.isCollapsed) {
         const text = this.toString();
         if (text && text.trim().length > 0) {
@@ -42,6 +59,9 @@
   if (origEmpty) {
     Selection.prototype.empty = function () {
       if (featureState.selection) {
+        if (isEditorOrInput(document.activeElement)) {
+          try { return origEmpty.apply(this, arguments); } catch (e) { return undefined; }
+        }
         if (this.rangeCount > 0 && !this.isCollapsed) {
           const text = this.toString();
           if (text && text.trim().length > 0) {
@@ -62,15 +82,19 @@
   const origPreventDefault = Event.prototype.preventDefault;
   Event.prototype.preventDefault = function () {
     if (featureState.selection) {
+      // NEVER block preventDefault for code editors (Ace, Monaco, CodeMirror) or interactive inputs!
+      if (isEditorOrInput(this.target) || isEditorOrInput(document.activeElement)) {
+        try {
+          return origPreventDefault.apply(this, arguments);
+        } catch (e) {
+          return undefined;
+        }
+      }
       if (this.type === "selectstart" || this.type === "copy" || this.type === "cut" || this.type === "dragstart") {
         return; // Never allow website to cancel text selection or copy!
       }
       if (this.type === "mousedown" && this.button === 0) {
-        const t = this.target;
-        const isFormInteractive = t && t.closest && t.closest("input, textarea, select, button");
-        if (!isFormInteractive) {
-          return; // Allow text selection initiation
-        }
+        return; // Allow text selection initiation
       }
     }
     try {
@@ -80,7 +104,7 @@
     }
   };
 
-  // 3. Property descriptor protections for event blockers
+  // 3. Property descriptor protections for event blockers on document and window
   function protectEventProperty(obj, prop) {
     if (!obj) return;
     try {
@@ -105,16 +129,8 @@
   protectEventProperty(Document.prototype, "onselectstart");
   protectEventProperty(Document.prototype, "oncopy");
   protectEventProperty(Document.prototype, "oncut");
-  protectEventProperty(Document.prototype, "onmousedown");
   protectEventProperty(Window.prototype, "onselectstart");
   protectEventProperty(Window.prototype, "oncopy");
-  if (typeof HTMLElement !== "undefined" && HTMLElement.prototype) {
-    protectEventProperty(HTMLElement.prototype, "onselectstart");
-    protectEventProperty(HTMLElement.prototype, "oncopy");
-    protectEventProperty(HTMLElement.prototype, "oncut");
-    protectEventProperty(HTMLElement.prototype, "onmousedown");
-    protectEventProperty(HTMLElement.prototype, "oncontextmenu");
-  }
 
   // Detected restrictions state
   const detectedRestrictions = {
@@ -182,48 +198,52 @@
 
     try {
       const fnStr = typeof listener === "function" ? listener.toString() : "";
+      const isCancelling =
+        fnStr.includes("preventDefault") ||
+        fnStr.includes("return false") ||
+        fnStr.includes("returnValue = false") ||
+        fnStr.includes("stopImmediatePropagation");
 
-      if (type === "contextmenu") {
+      if (type === "contextmenu" && isCancelling) {
         detectedRestrictions.contextmenu.blocked = true;
-        detectedRestrictions.contextmenu.details = "Page registered a 'contextmenu' event listener";
+        detectedRestrictions.contextmenu.details = "Page registered 'contextmenu' listener that cancels right-clicks";
         notifyDetection();
       }
 
       if (type === "keydown" || type === "keyup") {
         if (
-          fnStr.includes("123") ||
-          fnStr.includes("F12") ||
-          fnStr.includes("keyCode == 123") ||
-          fnStr.includes("which == 123") ||
-          fnStr.includes("isCtrl") ||
-          fnStr.includes("ctrlKey")
+          isCancelling &&
+          (fnStr.includes("123") ||
+            fnStr.includes("F12") ||
+            fnStr.includes("keyCode == 123") ||
+            fnStr.includes("which == 123"))
         ) {
           detectedRestrictions.f12.blocked = true;
-          detectedRestrictions.f12.details = "Page registered keydown listener checking F12 (123) or Ctrl modifiers";
+          detectedRestrictions.f12.details = "Page registered keydown listener checking F12 (123) or DevTools";
           notifyDetection();
         }
-        if (fnStr.includes("paste") || fnStr.includes("copy") || fnStr.includes("KeyC") || fnStr.includes("KeyV")) {
+        if (isCancelling && (fnStr.includes("KeyC") || fnStr.includes("KeyV") || fnStr.includes("keyCode == 67") || fnStr.includes("keyCode == 86"))) {
           detectedRestrictions.copypaste.blocked = true;
           detectedRestrictions.copypaste.details = "Page intercepts keyboard copy/paste keystrokes";
           notifyDetection();
         }
       }
 
-      if (type === "copy" || type === "cut" || type === "paste") {
+      if ((type === "copy" || type === "cut" || type === "paste") && isCancelling) {
         detectedRestrictions.copypaste.blocked = true;
-        detectedRestrictions.copypaste.details = `Page registered a '${type}' event listener`;
+        detectedRestrictions.copypaste.details = `Page registered '${type}' listener that cancels clipboard events`;
         notifyDetection();
       }
 
-      if (type === "selectstart") {
+      if (type === "selectstart" && isCancelling) {
         detectedRestrictions.selection.blocked = true;
-        detectedRestrictions.selection.details = "Page registered a 'selectstart' listener";
+        detectedRestrictions.selection.details = "Page registered 'selectstart' listener to cancel text selection";
         notifyDetection();
       }
 
-      if (type === "dragstart") {
+      if (type === "dragstart" && isCancelling) {
         detectedRestrictions.drag.blocked = true;
-        detectedRestrictions.drag.details = "Page registered a 'dragstart' listener";
+        detectedRestrictions.drag.details = "Page registered 'dragstart' listener that cancels drag operations";
         notifyDetection();
       }
 
@@ -337,6 +357,7 @@
     "contextmenu",
     (e) => {
       if (!featureState.contextmenu) return;
+      if (isEditorOrInput(e.target) || isEditorOrInput(document.activeElement)) return;
       e.stopImmediatePropagation();
     },
     true
@@ -348,6 +369,7 @@
       evtType,
       (e) => {
         if (!featureState.copypaste && !featureState.selection) return;
+        if (isEditorOrInput(e.target) || isEditorOrInput(document.activeElement)) return;
         e.stopImmediatePropagation();
       },
       true
@@ -356,6 +378,7 @@
       evtType,
       (e) => {
         if (!featureState.copypaste && !featureState.selection) return;
+        if (isEditorOrInput(e.target) || isEditorOrInput(document.activeElement)) return;
         e.stopImmediatePropagation();
       },
       true
@@ -366,6 +389,7 @@
     "keydown",
     (e) => {
       if (!featureState.copypaste && !featureState.selection) return;
+      if (isEditorOrInput(e.target) || isEditorOrInput(document.activeElement)) return;
       if (e.ctrlKey || e.metaKey) {
         const k = (e.key || "").toLowerCase();
         if (["c", "v", "x", "a"].includes(k)) {
@@ -382,6 +406,7 @@
       evtType,
       (e) => {
         if (!featureState.selection) return;
+        if (isEditorOrInput(e.target) || isEditorOrInput(document.activeElement)) return;
         e.stopImmediatePropagation();
       },
       true
@@ -390,6 +415,7 @@
       evtType,
       (e) => {
         if (!featureState.selection) return;
+        if (isEditorOrInput(e.target) || isEditorOrInput(document.activeElement)) return;
         e.stopImmediatePropagation();
       },
       true
@@ -570,9 +596,10 @@
   function scrubElementProtections(root = document) {
     if (!featureState.selection) return;
     try {
-      const selector = '[unselectable], [onselectstart], [onmousedown], [oncopy], [oncut], [style*="user-select"]';
+      const selector = '[unselectable], [onselectstart], [oncopy], [oncut], [style*="user-select"]';
       const elements = root.querySelectorAll ? root.querySelectorAll(selector) : [];
       elements.forEach((el) => {
+        if (isEditorOrInput(el)) return; // Never strip attributes or interfere with code editors or inputs!
         el.removeAttribute("unselectable");
         el.removeAttribute("onselectstart");
         el.removeAttribute("oncopy");
@@ -665,8 +692,8 @@
       }
 
       const fullCSS = `
-        /* Category 1: Universal CSS text selection enablement */
-        html, body, *, *::before, *::after {
+        /* Category 1: Universal CSS text selection enablement (explicitly protecting code editors) */
+        html, body, *:not(.ace_editor):not(.ace_editor *):not(.monaco-editor):not(.monaco-editor *):not(.CodeMirror):not(.CodeMirror *):not(.cm-editor):not(.cm-editor *) {
           -webkit-user-select: text !important;
           -moz-user-select: text !important;
           -ms-user-select: text !important;
@@ -674,16 +701,23 @@
           -webkit-touch-callout: default !important;
         }
 
+        /* Explicitly preserve code editor internal selection, cursor, and caret layers */
+        .ace_editor, .ace_editor *,
+        .monaco-editor, .monaco-editor *,
+        .CodeMirror, .CodeMirror *,
+        .cm-editor, .cm-editor * {
+          -webkit-user-select: initial !important;
+          user-select: initial !important;
+        }
+
         ${selectionCSS}
 
-        /* Category 2: Neutralize transparent full-screen overlay blockers without breaking interactive controls */
-        [class*="overlay"]:not(button):not(input):not(label):not(a):not(select):not(textarea),
-        [class*="shield"]:not(button):not(input):not(label):not(a):not(select):not(textarea),
-        [class*="protect"]:not(button):not(input):not(label):not(a):not(select):not(textarea),
-        [class*="watermark"]:not(button):not(input):not(label):not(a):not(select):not(textarea),
+        /* Category 2: Neutralize transparent full-screen anti-copy overlay blockers without breaking interactive controls */
         [class*="anti-copy"], [id*="anti-copy"],
-        [id*="overlay"]:not(button):not(input):not(label):not(a):not(select):not(textarea),
-        [id*="shield"]:not(button):not(input):not(label):not(a):not(select):not(textarea) {
+        [class*="copy-protect"], [id*="copy-protect"],
+        [class*="prevent-select"], [id*="prevent-select"],
+        [class*="shield-overlay"], [id*="shield-overlay"],
+        [class*="watermark"]:not(button):not(input):not(label):not(a):not(select):not(textarea) {
           pointer-events: none !important;
         }
 
