@@ -281,7 +281,7 @@
   // Create isolated Shadow DOM Host
   const host = document.createElement("div");
   host.id = "__forcepaste_host__";
-  host.style.all = "initial";
+  host.style.cssText = "all: initial !important; pointer-events: none !important; position: static !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; border: none !important;";
   const shadow = host.attachShadow({ mode: "open" });
 
   // Styles inside Shadow DOM
@@ -903,12 +903,13 @@
     return !!(el && el.closest && el.closest('.ace_editor, .ace_text-input, .monaco-editor, .inputarea, .CodeMirror, .cm-editor'));
   }
 
-  function isEditorOrInput(node) {
+  function isInteractiveOrEditor(node) {
     if (!node) return false;
     if (node.nodeType === 3) node = node.parentNode;
     if (!node || typeof node.closest !== "function") return false;
     return !!node.closest(
-      'input, textarea, select, button, [contenteditable="true"], [role="textbox"], ' +
+      'button, input, textarea, select, a, label, [role="button"], [role="checkbox"], [role="radio"], [role="tab"], [role="link"], [role="textbox"], ' +
+      '[contenteditable="true"], [tabindex], .btn, [class*="button"], [class*="btn"], [onclick], ' +
       '.ace_editor, .ace_line, .ace_scroller, .ace_content, ' +
       '.monaco-editor, .view-line, .view-lines, .lines-content, ' +
       '.CodeMirror, .CodeMirror-scroll, .CodeMirror-line, ' +
@@ -1568,7 +1569,7 @@
     window.addEventListener(
       evtType,
       (e) => {
-        if (isEditorOrInput(e.target) || isEditorOrInput(document.activeElement)) return;
+        if (isInteractiveOrEditor(e.target) || isInteractiveOrEditor(document.activeElement)) return;
         if (settings.forceSelect || settings.autoUnblock) {
           e.stopPropagation();
         }

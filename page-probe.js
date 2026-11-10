@@ -18,13 +18,14 @@
   // UNIVERSAL SELECTION & ANTI-COPY NEUTRALIZERS (MAIN WORLD)
   // =========================================================================
 
-  // Helper: check if element is a form input or code editor (Ace, Monaco, CodeMirror, rich text)
-  function isEditorOrInput(node) {
+  // Helper: check if element is an interactive button, link, form control, or code editor
+  function isInteractiveOrEditor(node) {
     if (!node) return false;
     if (node.nodeType === 3) node = node.parentNode;
     if (!node || typeof node.closest !== "function") return false;
     return !!node.closest(
-      'input, textarea, select, button, [contenteditable="true"], [role="textbox"], ' +
+      'button, input, textarea, select, a, label, [role="button"], [role="checkbox"], [role="radio"], [role="tab"], [role="link"], [role="textbox"], ' +
+      '[contenteditable="true"], [tabindex], .btn, [class*="button"], [class*="btn"], [onclick], ' +
       '.ace_editor, .ace_line, .ace_scroller, .ace_content, ' +
       '.monaco-editor, .view-line, .view-lines, .lines-content, ' +
       '.CodeMirror, .CodeMirror-scroll, .CodeMirror-line, ' +
@@ -39,7 +40,7 @@
 
   Selection.prototype.removeAllRanges = function () {
     if (featureState.selection) {
-      if (isEditorOrInput(document.activeElement)) {
+      if (isInteractiveOrEditor(document.activeElement)) {
         try { return origRemoveAllRanges.apply(this, arguments); } catch (e) { return undefined; }
       }
       if (this.rangeCount > 0 && !this.isCollapsed) {
@@ -59,7 +60,7 @@
   if (origEmpty) {
     Selection.prototype.empty = function () {
       if (featureState.selection) {
-        if (isEditorOrInput(document.activeElement)) {
+        if (isInteractiveOrEditor(document.activeElement)) {
           try { return origEmpty.apply(this, arguments); } catch (e) { return undefined; }
         }
         if (this.rangeCount > 0 && !this.isCollapsed) {
@@ -78,12 +79,12 @@
   }
 
   // 2. Hook Event.prototype.preventDefault
-  // Stops page scripts from cancelling selectstart, copy, cut, or drag selection on mousedown
+  // Stops page scripts from cancelling selectstart, copy, cut, or drag selection
   const origPreventDefault = Event.prototype.preventDefault;
   Event.prototype.preventDefault = function () {
     if (featureState.selection) {
-      // NEVER block preventDefault for code editors (Ace, Monaco, CodeMirror) or interactive inputs!
-      if (isEditorOrInput(this.target) || isEditorOrInput(document.activeElement)) {
+      // NEVER block preventDefault for interactive controls (buttons, links, radios, inputs) or editors!
+      if (isInteractiveOrEditor(this.target) || isInteractiveOrEditor(document.activeElement)) {
         try {
           return origPreventDefault.apply(this, arguments);
         } catch (e) {
@@ -92,9 +93,6 @@
       }
       if (this.type === "selectstart" || this.type === "copy" || this.type === "cut" || this.type === "dragstart") {
         return; // Never allow website to cancel text selection or copy!
-      }
-      if (this.type === "mousedown" && this.button === 0) {
-        return; // Allow text selection initiation
       }
     }
     try {
@@ -357,7 +355,7 @@
     "contextmenu",
     (e) => {
       if (!featureState.contextmenu) return;
-      if (isEditorOrInput(e.target) || isEditorOrInput(document.activeElement)) return;
+      if (isInteractiveOrEditor(e.target) || isInteractiveOrEditor(document.activeElement)) return;
       e.stopImmediatePropagation();
     },
     true
@@ -369,7 +367,7 @@
       evtType,
       (e) => {
         if (!featureState.copypaste && !featureState.selection) return;
-        if (isEditorOrInput(e.target) || isEditorOrInput(document.activeElement)) return;
+        if (isInteractiveOrEditor(e.target) || isInteractiveOrEditor(document.activeElement)) return;
         e.stopImmediatePropagation();
       },
       true
@@ -378,7 +376,7 @@
       evtType,
       (e) => {
         if (!featureState.copypaste && !featureState.selection) return;
-        if (isEditorOrInput(e.target) || isEditorOrInput(document.activeElement)) return;
+        if (isInteractiveOrEditor(e.target) || isInteractiveOrEditor(document.activeElement)) return;
         e.stopImmediatePropagation();
       },
       true
@@ -389,7 +387,7 @@
     "keydown",
     (e) => {
       if (!featureState.copypaste && !featureState.selection) return;
-      if (isEditorOrInput(e.target) || isEditorOrInput(document.activeElement)) return;
+      if (isInteractiveOrEditor(e.target) || isInteractiveOrEditor(document.activeElement)) return;
       if (e.ctrlKey || e.metaKey) {
         const k = (e.key || "").toLowerCase();
         if (["c", "v", "x", "a"].includes(k)) {
@@ -406,7 +404,7 @@
       evtType,
       (e) => {
         if (!featureState.selection) return;
-        if (isEditorOrInput(e.target) || isEditorOrInput(document.activeElement)) return;
+        if (isInteractiveOrEditor(e.target) || isInteractiveOrEditor(document.activeElement)) return;
         e.stopImmediatePropagation();
       },
       true
@@ -415,7 +413,7 @@
       evtType,
       (e) => {
         if (!featureState.selection) return;
-        if (isEditorOrInput(e.target) || isEditorOrInput(document.activeElement)) return;
+        if (isInteractiveOrEditor(e.target) || isInteractiveOrEditor(document.activeElement)) return;
         e.stopImmediatePropagation();
       },
       true
@@ -427,6 +425,7 @@
     "selectionchange",
     (e) => {
       if (!featureState.selection) return;
+      if (isInteractiveOrEditor(e.target) || isInteractiveOrEditor(document.activeElement)) return;
       e.stopImmediatePropagation();
     },
     true
@@ -436,6 +435,7 @@
     "dragstart",
     (e) => {
       if (!featureState.drag && !featureState.selection) return;
+      if (isInteractiveOrEditor(e.target)) return;
       e.stopImmediatePropagation();
     },
     true
@@ -448,13 +448,20 @@
       if (!featureState.selection) return;
 
       const target = e.target;
+      // CRITICAL: NEVER puncture buttons, radio options, checkboxes, links, labels, or form controls!
+      if (isInteractiveOrEditor(target)) return;
+
       if (target && target !== document.body && target !== document.documentElement) {
         // If element is empty or purely transparent overlay, puncture it!
+        // Only puncture large anti-copy shield overlays (width or height >= 100), NEVER small form controls or indicators!
         const text = (target.innerText || target.textContent || "").trim();
         if (text.length === 0 && target.children.length === 0) {
-          const style = window.getComputedStyle(target);
-          if (style.position === "absolute" || style.position === "fixed") {
-            target.style.setProperty("pointer-events", "none", "important");
+          const rect = target.getBoundingClientRect ? target.getBoundingClientRect() : null;
+          if (rect && (rect.width >= 100 || rect.height >= 100)) {
+            const style = window.getComputedStyle(target);
+            if (style.position === "absolute" || style.position === "fixed") {
+              target.style.setProperty("pointer-events", "none", "important");
+            }
           }
         }
       }
@@ -571,6 +578,10 @@
       evtType,
       (e) => {
         if (!featureState.alwaysActive) return;
+        // Never intercept blur on in-page DOM elements (inputs, radios, buttons, selects)
+        if (evtType === "blur" && e.target && e.target !== window && e.target !== document) return;
+        // Never intercept mouseleave on in-page buttons, dropdowns, or elements
+        if (evtType === "mouseleave" && e.target && e.target !== document && e.target !== document.documentElement) return;
         // Suppress event completely so site thinks tab is permanently active
         e.stopImmediatePropagation();
         e.preventDefault();
@@ -582,6 +593,8 @@
       evtType,
       (e) => {
         if (!featureState.alwaysActive) return;
+        if (evtType === "blur" && e.target && e.target !== window && e.target !== document) return;
+        if (evtType === "mouseleave" && e.target && e.target !== document && e.target !== document.documentElement) return;
         e.stopImmediatePropagation();
         e.preventDefault();
       },
@@ -599,7 +612,7 @@
       const selector = '[unselectable], [onselectstart], [oncopy], [oncut], [style*="user-select"]';
       const elements = root.querySelectorAll ? root.querySelectorAll(selector) : [];
       elements.forEach((el) => {
-        if (isEditorOrInput(el)) return; // Never strip attributes or interfere with code editors or inputs!
+        if (isInteractiveOrEditor(el)) return; // Never strip attributes or interfere with interactive controls, buttons, or editors!
         el.removeAttribute("unselectable");
         el.removeAttribute("onselectstart");
         el.removeAttribute("oncopy");
@@ -710,6 +723,12 @@
           user-select: initial !important;
         }
 
+        /* Prevent form controls, buttons, radio options, and checkboxes from triggering unwanted drag-selections on click */
+        button, input[type="button"], input[type="submit"], input[type="reset"], input[type="radio"], input[type="checkbox"], [role="button"], [role="checkbox"], [role="radio"], [role="tab"], .btn, [class*="button"], [class*="btn"] {
+          -webkit-user-select: none !important;
+          user-select: none !important;
+        }
+
         ${selectionCSS}
 
         /* Category 2: Neutralize transparent full-screen anti-copy overlay blockers without breaking interactive controls */
@@ -719,6 +738,11 @@
         [class*="shield-overlay"], [id*="shield-overlay"],
         [class*="watermark"]:not(button):not(input):not(label):not(a):not(select):not(textarea) {
           pointer-events: none !important;
+        }
+
+        /* Guarantee that all buttons, links, tabs, and form controls are ALWAYS clickable and never lose pointer events */
+        button, input, select, textarea, a, label, [role="button"], [role="checkbox"], [role="radio"], [role="tab"], [tabindex], .btn, [class*="button"], [class*="btn"], [onclick] {
+          pointer-events: auto !important;
         }
 
         /* Category 3: Document and Canvas text layers (PDF.js, Scribd, Google Docs, Kindle) */
